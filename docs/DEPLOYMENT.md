@@ -22,13 +22,13 @@ Required secret/environment values to set in Render:
 
 Recommended production values:
 
-- `GOOGLE_REDIRECT_URI=https://YOUR_VERCEL_DOMAIN/google/callback/`
-- `CORS_ORIGIN_CSV=https://YOUR_VERCEL_DOMAIN`
+- `GOOGLE_REDIRECT_URI=https://clauseguide-ai.vercel.app/google/callback/`
+- `CORS_ORIGIN_CSV=https://clauseguide-ai.vercel.app`
 
 After Render creates the backend, copy its URL. The API base will be:
 
 ```text
-https://YOUR_RENDER_SERVICE.onrender.com/api
+https://clauseguide-ai-backend.onrender.com/api
 ```
 
 ## Frontend: Vercel
@@ -42,7 +42,7 @@ Create a Vercel project from this GitHub repository and set:
 Required Vercel environment variable:
 
 ```text
-VITE_API_BASE=https://YOUR_RENDER_SERVICE.onrender.com/api
+VITE_API_BASE=https://clauseguide-ai-backend.onrender.com/api
 ```
 
 ## Google OAuth
@@ -52,13 +52,13 @@ Update Google Cloud OAuth settings after deployment:
 Authorized JavaScript origins:
 
 ```text
-https://YOUR_VERCEL_DOMAIN
+https://clauseguide-ai.vercel.app
 ```
 
 Authorized redirect URIs:
 
 ```text
-https://YOUR_VERCEL_DOMAIN/google/callback/
+https://clauseguide-ai.vercel.app/google/callback/
 ```
 
 Then set the same redirect URI in Render as `GOOGLE_REDIRECT_URI`.
