@@ -66,7 +66,8 @@ const GOOGLE_CLIENT_ID =
   import.meta.env.VITE_GOOGLE_CLIENT_ID ??
   "527917090388-bsf245sm5aavvop89hkfh9ae2qpdddna.apps.googleusercontent.com";
 const GOOGLE_REDIRECT_URI =
-  import.meta.env.VITE_GOOGLE_REDIRECT_URI ?? "http://localhost:5173/google/callback/";
+  import.meta.env.VITE_GOOGLE_REDIRECT_URI ??
+  `${window.location.origin.replace(/\/$/, "")}/google/callback/`;
 
 type AuthMode = "login" | "register" | "verify";
 type PortalView = "dashboard" | "documents" | "markdown";
