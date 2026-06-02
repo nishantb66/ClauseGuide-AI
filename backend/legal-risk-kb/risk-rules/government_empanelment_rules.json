@@ -1,0 +1,29 @@
+{
+  "rule_group": "government_empanelment",
+  "rules": [
+    {
+      "id": "blacklisting_debarment_due_process",
+      "clause": "compliance",
+      "document_types": ["government_empanelment"],
+      "risk_triggers": ["blacklisting", "blacklist", "debarment", "debar", "suspend empanelment"],
+      "mitigating_terms": ["show cause", "notice", "hearing", "appeal", "cure period", "written reasons"],
+      "base_severity": "high",
+      "summary": "Blacklisting or debarment can create serious eligibility risk.",
+      "why_risky": "Removal, suspension, or blacklisting may affect future government or institutional work.",
+      "suggested_question": "Can the process require written reasons, show-cause notice, hearing, cure period, and appeal rights?",
+      "false_positive_checks": ["check if due process is defined elsewhere", "check whether debarment applies only to fraud or serious breach"]
+    },
+    {
+      "id": "no_guaranteed_work",
+      "clause": "performance_obligations",
+      "document_types": ["government_empanelment"],
+      "risk_triggers": ["no guaranteed work", "no assurance of work", "as and when required", "work order", "not guarantee"],
+      "mitigating_terms": ["minimum commitment", "retainer", "standby fee", "clear allocation", "rotation policy"],
+      "base_severity": "medium",
+      "summary": "Empanelment may not guarantee revenue or work allocation.",
+      "why_risky": "The vendor may remain eligible but receive no actual work or payment.",
+      "suggested_question": "Can work allocation, minimum commitment, rotation policy, or standby fees be clarified?",
+      "false_positive_checks": ["no guaranteed work is common in empanelment but commercially important", "check if there is a minimum commitment elsewhere"]
+    }
+  ]
+}

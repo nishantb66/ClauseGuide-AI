@@ -1,0 +1,20 @@
+{
+  "document_type": "vendor_agreement",
+  "display_name": "Vendor Agreement",
+  "purpose": "Supply, procurement, delivery, payment, liability, and termination.",
+  "likely_user_role": "vendor or buyer",
+  "stronger_party": "often buyer/procuring company",
+  "expected_clauses": [
+    {"clause": "payment", "missing_severity": "medium", "why_expected": "Price, invoices, and payment timing define commercial obligations."},
+    {"clause": "termination", "missing_severity": "medium", "why_expected": "Exit and cancellation rights affect supply continuity."},
+    {"clause": "liability", "missing_severity": "high", "why_expected": "Supply failures, indemnity, and damages need allocation."},
+    {"clause": "jurisdiction", "missing_severity": "medium", "why_expected": "Forum clarity helps enforcement."}
+  ],
+  "recommended_clauses": ["arbitration", "performance_obligations", "assignment", "audit_rights"],
+  "review_focus": ["delivery timelines", "acceptance/rejection", "late penalties", "liability cap", "indemnity", "purchase order precedence"],
+  "false_positive_guardrails": [
+    "Do not classify as SaaS unless software, subscription, license, platform, or data processing signals appear.",
+    "Purchase order language may contain payment and scope details.",
+    "Audit rights are not always mandatory but may matter for regulated procurement."
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "document_type": "government_empanelment",
+  "display_name": "Government / Empanelment / Tender Agreement",
+  "purpose": "Eligibility or empanelment to receive government, authority, or institutional work orders.",
+  "likely_user_role": "vendor, consultant, agency, or service provider",
+  "stronger_party": "government authority / department",
+  "expected_clauses": [
+    {"clause": "scope_of_services", "missing_severity": "medium", "why_expected": "Scope defines what work orders may cover."},
+    {"clause": "payment", "missing_severity": "medium", "why_expected": "Payment triggers and approvals matter because work may be order-based."},
+    {"clause": "termination", "missing_severity": "high", "why_expected": "Suspension, cancellation, or removal from panel can affect future revenue."},
+    {"clause": "compliance", "missing_severity": "high", "why_expected": "Compliance failures can cause blacklisting, debarment, or eligibility loss."},
+    {"clause": "performance_obligations", "missing_severity": "medium", "why_expected": "Performance criteria and acceptance affect work allocation and payment."}
+  ],
+  "recommended_clauses": ["jurisdiction", "arbitration", "liability", "audit_rights", "assignment"],
+  "review_focus": ["no guaranteed work", "blacklisting/debarment", "unilateral discretion", "payment approval timelines", "performance review and appeal process"],
+  "false_positive_guardrails": [
+    "Do not classify as freelance contract just because client, services, or deliverables appear.",
+    "Missing IP is not a major risk unless creative/software/content deliverables are central.",
+    "No guaranteed work is not automatically illegal, but it is commercially material and should be surfaced."
+  ]
+}

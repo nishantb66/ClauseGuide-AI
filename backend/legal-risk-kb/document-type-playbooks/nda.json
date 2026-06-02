@@ -1,0 +1,20 @@
+{
+  "document_type": "nda",
+  "display_name": "NDA / Confidentiality Agreement",
+  "purpose": "Protection and controlled use of confidential information.",
+  "likely_user_role": "disclosing or receiving party",
+  "stronger_party": "depends on whether NDA is one-way or mutual",
+  "expected_clauses": [
+    {"clause": "confidentiality", "missing_severity": "high", "why_expected": "Confidentiality obligation is the core purpose."},
+    {"clause": "termination", "missing_severity": "low", "why_expected": "Survival and term should be clear."},
+    {"clause": "jurisdiction", "missing_severity": "low", "why_expected": "Forum clarity helps but is not the core duty."},
+    {"clause": "liability", "missing_severity": "medium", "why_expected": "Remedies and injunctive relief affect enforcement."}
+  ],
+  "recommended_clauses": ["arbitration", "data_privacy"],
+  "review_focus": ["one-way vs mutual", "definition breadth", "residual knowledge", "return/destruction", "permitted disclosures", "duration"],
+  "false_positive_guardrails": [
+    "Do not flag confidentiality missing when non-disclosure, proprietary information, secrecy, or data protection wording appears.",
+    "Residual knowledge is only relevant if the clause allows memory-based reuse.",
+    "Data privacy matters more if personal data is included in confidential information."
+  ]
+}

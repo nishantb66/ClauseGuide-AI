@@ -1,0 +1,17 @@
+{
+  "rule_group": "data_privacy",
+  "rules": [
+    {
+      "id": "weak_data_exit",
+      "clause": "data_privacy",
+      "document_types": ["software_saas_agreement", "service_agreement", "vendor_agreement"],
+      "risk_triggers": ["personal data", "customer data", "subprocessor", "process data", "data protection"],
+      "mitigating_terms": ["return", "delete", "destroy", "breach notification", "security measures", "subprocessor notice"],
+      "base_severity": "high",
+      "summary": "Data privacy terms may not fully protect customer or personal data.",
+      "why_risky": "Data return/deletion, breach notice, subprocessors, or security duties may be incomplete.",
+      "suggested_question": "Can the agreement define breach notice, subprocessors, security controls, and data return/deletion?",
+      "false_positive_checks": ["check if these protections are in a DPA or annexure", "check if only non-personal data is processed"]
+    }
+  ]
+}

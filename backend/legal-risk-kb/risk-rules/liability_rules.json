@@ -1,0 +1,29 @@
+{
+  "rule_group": "liability",
+  "rules": [
+    {
+      "id": "uncapped_liability",
+      "clause": "liability",
+      "document_types": ["service_agreement", "vendor_agreement", "software_saas_agreement", "freelance_contract", "legal_services_agreement"],
+      "risk_triggers": ["unlimited liability", "without limitation", "all losses", "any and all", "whatsoever"],
+      "mitigating_terms": ["cap", "maximum", "limited to", "aggregate liability", "fees paid"],
+      "base_severity": "high",
+      "summary": "Liability may be uncapped or very broad.",
+      "why_risky": "Potential damages may exceed contract value or expected exposure.",
+      "suggested_question": "Can liability be capped, mutual, and linked to fees paid, with clear exclusions?",
+      "false_positive_checks": ["check if broad language is limited by a later liability cap", "check exclusions only apply to serious misconduct or IP/data claims"]
+    },
+    {
+      "id": "one_sided_indemnity",
+      "clause": "liability",
+      "document_types": ["service_agreement", "vendor_agreement", "software_saas_agreement", "freelance_contract", "legal_services_agreement", "government_empanelment"],
+      "risk_triggers": ["indemnify", "hold harmless", "defend"],
+      "mitigating_terms": ["mutual", "both parties", "each party", "third-party claims", "caused by"],
+      "base_severity": "medium",
+      "summary": "Indemnity may be one-sided or broader than necessary.",
+      "why_risky": "One party may take responsibility for broad claims without matching protection.",
+      "suggested_question": "Can indemnity be mutual, fault-based, limited to third-party claims, and tied to the liability cap?",
+      "false_positive_checks": ["check whether indemnity is mutual", "check whether it only covers third-party claims caused by breach"]
+    }
+  ]
+}

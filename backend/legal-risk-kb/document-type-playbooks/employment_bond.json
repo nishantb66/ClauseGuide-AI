@@ -1,0 +1,21 @@
+{
+  "document_type": "employment_bond",
+  "display_name": "Employment Bond",
+  "purpose": "Employment with minimum service, training-cost recovery, or early-exit bond obligations.",
+  "likely_user_role": "employee",
+  "stronger_party": "usually employer/company",
+  "expected_clauses": [
+    {"clause": "bond", "missing_severity": "high", "why_expected": "The bond obligation is the core risk object."},
+    {"clause": "penalty", "missing_severity": "high", "why_expected": "Early exit cost must be clear, proportionate, and evidence-based."},
+    {"clause": "termination", "missing_severity": "medium", "why_expected": "Bond consequences on termination should be clear."},
+    {"clause": "notice_period", "missing_severity": "medium", "why_expected": "Notice affects whether exit triggers penalties."},
+    {"clause": "jurisdiction", "missing_severity": "low", "why_expected": "Forum clarity helps disputes but is not the core risk."}
+  ],
+  "recommended_clauses": ["refund", "liability"],
+  "review_focus": ["bond amount", "pro-rata reduction", "actual training-cost proof", "minimum service period", "exceptions for employer breach"],
+  "false_positive_guardrails": [
+    "Do not treat every use of word bond as employment bond unless service period, training cost, or early exit is present.",
+    "Do not mark penalty missing if liquidated damages or repayment obligation appears.",
+    "Training repayment is higher risk when no itemized cost proof or pro-rata reduction exists."
+  ]
+}

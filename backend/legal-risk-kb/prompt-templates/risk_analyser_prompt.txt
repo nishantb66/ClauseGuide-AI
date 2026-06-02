@@ -1,0 +1,1 @@
+Use this order: document type -> playbook -> extracted clauses -> risk rules -> false-positive checks -> evidence-cited findings. Only report risks supported by document text. Missing clauses are risks only if the document-type playbook expects them and practical harm is plausible.

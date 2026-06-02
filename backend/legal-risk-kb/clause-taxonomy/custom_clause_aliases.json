@@ -1,0 +1,16 @@
+{
+  "termination": ["termination", "terminate", "discharge", "withdraw", "expiry", "cancel", "rescind", "termination for convenience", "termination for cause"],
+  "notice_period": ["notice period", "prior notice", "written notice", "days notice", "notice to terminate", "notice of termination"],
+  "payment": ["payment", "fees", "fee schedule", "rate schedule", "invoice", "billing", "rent", "charges", "retainer", "consideration", "milestone payment"],
+  "scope_of_services": ["scope", "scope of services", "statement of work", "services covered", "deliverables", "work order", "engagement"],
+  "confidentiality": ["confidential", "confidentiality", "non-disclosure", "secrecy", "proprietary information", "data protection"],
+  "liability": ["liability", "indemnity", "indemnify", "hold harmless", "limitation of liability", "cap on liability", "insurance"],
+  "ip_rights": ["intellectual property", "copyright", "ownership of work", "work product", "inventions", "license", "usage rights"],
+  "data_privacy": ["personal data", "data privacy", "data protection", "security measures", "breach notification", "subprocessor", "data deletion"],
+  "jurisdiction": ["governing law", "jurisdiction", "courts of", "venue", "laws of"],
+  "arbitration": ["arbitration", "arbitrator", "dispute resolution", "conciliation", "mediation"],
+  "security_deposit": ["security deposit", "refundable deposit", "deposit refund", "deposit deduction"],
+  "service_level": ["sla", "service level", "uptime", "availability", "response time", "resolution time", "service credit"],
+  "compliance": ["compliance", "applicable law", "statutory", "policy", "blacklisting", "debarment"],
+  "performance_obligations": ["performance", "acceptance criteria", "approval", "milestone", "deliver", "work order", "no guaranteed work"]
+}

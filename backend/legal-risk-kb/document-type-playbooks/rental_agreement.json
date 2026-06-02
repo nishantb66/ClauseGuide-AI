@@ -1,0 +1,21 @@
+{
+  "document_type": "rental_agreement",
+  "display_name": "Rental Agreement",
+  "purpose": "Use or occupation of property in exchange for rent or related charges.",
+  "likely_user_role": "tenant or owner",
+  "stronger_party": "usually owner/landlord if terms are non-negotiable",
+  "expected_clauses": [
+    {"clause": "payment", "missing_severity": "medium", "why_expected": "Rent and charges define the core commercial bargain."},
+    {"clause": "security_deposit", "missing_severity": "medium", "why_expected": "Deposit amount, deductions, and refund timing are common dispute points."},
+    {"clause": "termination", "missing_severity": "medium", "why_expected": "Exit rights and early termination consequences should be clear."},
+    {"clause": "maintenance", "missing_severity": "medium", "why_expected": "Utility and repair responsibility must be allocated."},
+    {"clause": "use_restrictions", "missing_severity": "low", "why_expected": "Premises use limits reduce misuse or subletting disputes."}
+  ],
+  "recommended_clauses": ["lock_in", "rent_escalation", "jurisdiction", "arbitration"],
+  "review_focus": ["deposit refund timeline", "rent amount and due date", "utilities and maintenance allocation", "lock-in and early exit", "rent escalation cap"],
+  "false_positive_guardrails": [
+    "Do not mark payment missing if rent, monthly charges, maintenance charges, or a rent schedule appears.",
+    "Do not mark security deposit missing if refundable deposit or deposit adjustment language appears.",
+    "Do not treat ordinary tenant duties as risks unless they are broad, vague, or one-sided."
+  ]
+}

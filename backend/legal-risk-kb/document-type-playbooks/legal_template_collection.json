@@ -1,0 +1,15 @@
+{
+  "document_type": "legal_template_collection",
+  "display_name": "Legal Template Collection",
+  "purpose": "A collection, handbook, or sample bundle containing multiple legal templates or document sections.",
+  "likely_user_role": "reviewer selecting or filling templates",
+  "stronger_party": "varies by template section",
+  "expected_clauses": [],
+  "recommended_clauses": [],
+  "review_focus": ["identify each template separately", "blank placeholders", "section-specific document type", "do not apply one checklist to the whole PDF"],
+  "false_positive_guardrails": [
+    "Do not apply a single rental, loan, employment, or freelance checklist to the whole file.",
+    "Treat missing clauses at the section/template level, not at collection level.",
+    "Flag blank placeholders separately from missing amounts or missing dates."
+  ]
+}

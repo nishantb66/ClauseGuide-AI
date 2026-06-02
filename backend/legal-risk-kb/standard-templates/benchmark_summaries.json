@@ -1,0 +1,23 @@
+{
+  "source_note": "Curated benchmark summaries only. Do not copy third-party template text unless licensing permits it.",
+  "benchmarks": [
+    {
+      "id": "balanced_saas_benchmark",
+      "document_types": ["software_saas_agreement"],
+      "normal_structure": ["subscription/license scope", "fees", "acceptable use", "SLA/support", "data protection", "confidentiality", "liability cap", "term and termination", "data export/deletion"],
+      "red_flags": ["no data export after termination", "unilateral suspension without notice/cure", "no breach notification", "uncapped customer indemnity", "auto-renewal without cancellation window"]
+    },
+    {
+      "id": "balanced_nda_benchmark",
+      "document_types": ["nda"],
+      "normal_structure": ["definition of confidential information", "purpose limitation", "standard exclusions", "permitted disclosures", "return/destruction", "term/survival", "remedies", "governing law"],
+      "red_flags": ["overbroad all-information definition", "no public/already-known exclusions", "perpetual protection for all information", "residual knowledge clause", "one-way obligation where mutual sharing occurs"]
+    },
+    {
+      "id": "balanced_services_benchmark",
+      "document_types": ["service_agreement", "freelance_contract", "vendor_agreement"],
+      "normal_structure": ["scope/SOW", "deliverables", "acceptance criteria", "fees", "change control", "IP ownership", "confidentiality", "liability cap", "termination", "dispute resolution"],
+      "red_flags": ["scope unclear", "payment only at client discretion", "IP transfers before payment", "no liability cap", "termination forfeits completed-work payment"]
+    }
+  ]
+}

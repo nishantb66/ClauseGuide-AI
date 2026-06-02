@@ -1,0 +1,21 @@
+{
+  "document_type": "employment_agreement",
+  "display_name": "Employment Agreement",
+  "purpose": "Employment terms, compensation, obligations, confidentiality, and exit conditions.",
+  "likely_user_role": "employee",
+  "stronger_party": "usually employer/company",
+  "expected_clauses": [
+    {"clause": "termination", "missing_severity": "medium", "why_expected": "Employment exit rights and consequences should be clear."},
+    {"clause": "notice_period", "missing_severity": "medium", "why_expected": "Notice burden affects resignation and termination flexibility."},
+    {"clause": "payment", "missing_severity": "medium", "why_expected": "Compensation and benefits are core employment terms."},
+    {"clause": "confidentiality", "missing_severity": "low", "why_expected": "Confidentiality is common but absence is not always employee-side risk."},
+    {"clause": "jurisdiction", "missing_severity": "low", "why_expected": "Dispute forum helps but may be less central than compensation and exit terms."}
+  ],
+  "recommended_clauses": ["liability", "non_solicitation"],
+  "review_focus": ["notice asymmetry", "non-compete enforceability and breadth", "salary and variable pay", "termination for cause", "confidentiality survival"],
+  "false_positive_guardrails": [
+    "Do not flag IP ownership as major unless the role involves inventions, content, software, designs, or work product.",
+    "Do not flag confidentiality missing if policy, secrecy, proprietary information, or data protection wording appears.",
+    "Standard notice periods are not risky unless asymmetric, unclear, or tied to forfeiture."
+  ]
+}

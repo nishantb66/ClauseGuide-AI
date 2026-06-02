@@ -1,0 +1,22 @@
+{
+  "document_type": "software_saas_agreement",
+  "display_name": "Vendor / SaaS / Software Agreement",
+  "purpose": "Software license, SaaS access, support, security, data handling, and subscription terms.",
+  "likely_user_role": "customer or vendor",
+  "stronger_party": "usually software vendor/provider",
+  "expected_clauses": [
+    {"clause": "payment", "missing_severity": "medium", "why_expected": "Subscription fees and payment timing define commercial obligations."},
+    {"clause": "license", "missing_severity": "high", "why_expected": "License scope defines permitted use and access."},
+    {"clause": "service_level", "missing_severity": "medium", "why_expected": "Uptime and support matter for operational reliability."},
+    {"clause": "data_privacy", "missing_severity": "high", "why_expected": "Customer data, breach notice, subprocessors, and deletion are central SaaS risks."},
+    {"clause": "liability", "missing_severity": "high", "why_expected": "Liability cap, indemnity, and data breach exposure must be allocated."},
+    {"clause": "termination", "missing_severity": "medium", "why_expected": "Access, data export, and renewal consequences must be clear."}
+  ],
+  "recommended_clauses": ["audit_rights", "assignment", "confidentiality"],
+  "review_focus": ["license restrictions", "SLA and support", "data return/deletion", "subprocessors", "liability cap exclusions", "auto-renewal"],
+  "false_positive_guardrails": [
+    "Do not treat all license restrictions as bad; flag only where access, users, data, or termination consequences are unclear or one-sided.",
+    "Do not mark data privacy missing if equivalent security, processing, breach, or deletion terms appear.",
+    "Service levels may be optional for low-risk software but important for business-critical SaaS."
+  ]
+}

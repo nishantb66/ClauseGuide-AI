@@ -1,0 +1,21 @@
+{
+  "document_type": "loan_agreement",
+  "display_name": "Loan Agreement",
+  "purpose": "Loan amount, interest, repayment, default, security, and recovery rights.",
+  "likely_user_role": "borrower or lender",
+  "stronger_party": "usually lender",
+  "expected_clauses": [
+    {"clause": "payment", "missing_severity": "high", "why_expected": "Repayment, interest, and due dates are core terms."},
+    {"clause": "penalty", "missing_severity": "medium", "why_expected": "Default interest, fees, and acceleration consequences should be clear."},
+    {"clause": "termination", "missing_severity": "medium", "why_expected": "Acceleration and early repayment should be clear."},
+    {"clause": "jurisdiction", "missing_severity": "medium", "why_expected": "Recovery proceedings need forum clarity."},
+    {"clause": "liability", "missing_severity": "medium", "why_expected": "Guarantees, indemnity, and collateral obligations affect exposure."}
+  ],
+  "recommended_clauses": ["arbitration", "security", "prepayment"],
+  "review_focus": ["interest rate", "default interest", "acceleration", "collateral", "guarantee", "prepayment charges"],
+  "false_positive_guardrails": [
+    "Do not mark payment missing if repayment schedule, EMI, installment, interest, or due-date table exists.",
+    "Default language is risky mainly when fees are uncapped, compounding, or acceleration is immediate.",
+    "Jurisdiction is a medium issue, not automatically critical."
+  ]
+}

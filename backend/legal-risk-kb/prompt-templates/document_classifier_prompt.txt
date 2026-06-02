@@ -1,0 +1,1 @@
+Classify the document from content, parties, purpose, obligations, and risk context. Do not classify from filename alone. Prefer specialized types over generic service/freelance when government empanelment, legal engagement, SaaS/software, lease, loan, NDA, or employment signals are present.

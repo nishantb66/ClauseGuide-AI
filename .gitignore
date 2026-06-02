@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+
+# Node
+node_modules/
+frontend/dist/
+
+# Runtime data
+backend/storage/uploads/*
+backend/storage/reports/*
+backend/storage/*.db
+
+# Secrets
+*.env
+*.env.*
+!*.envrc
+
+# OS
+.DS_Store
+
+# Build / package metadata
+*.egg-info/
+*.tsbuildinfo
+
+# Local deployment CLIs
+.vercel/
+.render/

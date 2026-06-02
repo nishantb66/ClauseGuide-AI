@@ -1,0 +1,29 @@
+{
+  "rule_group": "payment",
+  "rules": [
+    {
+      "id": "payment_approval_delay",
+      "clause": "payment",
+      "document_types": ["government_empanelment", "vendor_agreement", "service_agreement", "freelance_contract"],
+      "risk_triggers": ["approval", "satisfaction", "sole discretion", "after verification", "subject to acceptance"],
+      "mitigating_terms": ["within", "days", "deemed accepted", "objective criteria", "undisputed"],
+      "base_severity": "medium",
+      "summary": "Payment may depend on open-ended approval or acceptance.",
+      "why_risky": "Payment can be delayed if approval criteria or timelines are unclear.",
+      "suggested_question": "Can approval criteria, deemed acceptance, and payment timelines be made objective?",
+      "false_positive_checks": ["check whether a clear payment timeline exists", "check whether acceptance criteria are objective"]
+    },
+    {
+      "id": "late_or_unclear_payment",
+      "clause": "payment",
+      "document_types": ["rental_agreement", "service_agreement", "vendor_agreement", "freelance_contract", "legal_services_agreement", "software_saas_agreement", "loan_agreement"],
+      "risk_triggers": ["payable on demand", "as determined", "from time to time", "without notice", "unpaid in full"],
+      "mitigating_terms": ["due date", "within", "invoice", "billing statement", "schedule", "rate schedule"],
+      "base_severity": "medium",
+      "summary": "Payment timing or amount may be unclear or one-sided.",
+      "why_risky": "Unclear payment mechanics create disputes and cash-flow risk.",
+      "suggested_question": "Can amount, invoice process, due date, and late consequences be stated clearly?",
+      "false_positive_checks": ["check annexures and schedules", "check whether fees are set in a separate rate table"]
+    }
+  ]
+}

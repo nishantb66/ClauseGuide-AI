@@ -1,0 +1,30 @@
+{
+  "rule_group": "termination",
+  "rules": [
+    {
+      "id": "termination_without_notice",
+      "clause": "termination",
+      "document_types": ["employment_agreement", "employment_bond", "service_agreement", "vendor_agreement", "software_saas_agreement", "government_empanelment"],
+      "risk_triggers": ["without notice", "immediate termination", "terminate immediately", "without assigning any reason", "sole discretion"],
+      "mitigating_terms": ["cure period", "opportunity to cure", "written notice", "reasonable notice", "pay for completed work"],
+      "severity_logic": {"critical": "immediate/no-notice termination plus forfeiture or blacklisting", "high": "unilateral no-notice termination", "medium": "unilateral termination with notice", "low": "mutual termination with balanced notice"},
+      "base_severity": "high",
+      "summary": "Termination rights may be unilateral or abrupt.",
+      "why_risky": "One party may be able to end the relationship with limited notice or process.",
+      "suggested_question": "Can termination require written notice, a cure period for breach, and payment protection for completed work?",
+      "false_positive_checks": ["check whether both parties have equal rights", "check whether completed work is paid", "check whether a cure period exists"]
+    },
+    {
+      "id": "termination_forfeits_payment",
+      "clause": "termination",
+      "document_types": ["service_agreement", "freelance_contract", "vendor_agreement", "government_empanelment", "software_saas_agreement"],
+      "risk_triggers": ["forfeit", "no payment", "no compensation", "not entitled to payment", "withhold payment"],
+      "mitigating_terms": ["work already performed", "undisputed amounts", "pro rata", "completed work"],
+      "base_severity": "high",
+      "summary": "Termination may put payment for completed work at risk.",
+      "why_risky": "The document may allow withholding or forfeiture after termination.",
+      "suggested_question": "Can the contract protect undisputed fees and payment for accepted or completed work?",
+      "false_positive_checks": ["check whether only disputed fees are withheld", "check whether pro-rata payment exists"]
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "document_type": "freelance_contract",
+  "display_name": "Freelance Contract",
+  "purpose": "Independent work, deliverables, acceptance, payment, IP ownership, and termination.",
+  "likely_user_role": "freelancer or client",
+  "stronger_party": "often client if payment and acceptance terms are unilateral",
+  "expected_clauses": [
+    {"clause": "payment", "missing_severity": "medium", "why_expected": "Fee, milestone, and invoice terms are core."},
+    {"clause": "termination", "missing_severity": "medium", "why_expected": "Exit rights and payment for completed work should be clear."},
+    {"clause": "ip_rights", "missing_severity": "medium", "why_expected": "Ownership of work product should be clear when deliverables are created."},
+    {"clause": "confidentiality", "missing_severity": "low", "why_expected": "Confidentiality is common but context-dependent."},
+    {"clause": "liability", "missing_severity": "high", "why_expected": "Uncapped service liability can exceed project value."}
+  ],
+  "recommended_clauses": ["jurisdiction", "arbitration", "scope_of_services", "acceptance"],
+  "review_focus": ["scope creep", "milestone acceptance", "kill fee", "IP transfer timing", "portfolio rights", "liability cap"],
+  "false_positive_guardrails": [
+    "Do not classify government empanelment, legal engagement, or SaaS as freelance just because client/services appear.",
+    "IP risk is high only where creative/software/content/invention deliverables are involved.",
+    "Payment is present if invoice, milestone, fee table, rate, or retainer language exists."
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "rule_group": "ip_rights",
+  "rules": [
+    {
+      "id": "ip_assignment_too_broad",
+      "clause": "ip_rights",
+      "document_types": ["freelance_contract", "service_agreement", "software_saas_agreement", "employment_agreement"],
+      "risk_triggers": ["all intellectual property", "all work product", "hereby assigns", "worldwide", "perpetual", "irrevocable"],
+      "mitigating_terms": ["upon full payment", "pre-existing materials", "background ip", "portfolio", "limited license"],
+      "base_severity": "medium",
+      "summary": "IP ownership or assignment may be broader than the deal requires.",
+      "why_risky": "The clause may transfer reusable materials, background IP, or unpaid work product.",
+      "suggested_question": "Can IP transfer apply only to paid deliverables and preserve background IP/reusable tools?",
+      "false_positive_checks": ["check whether the document actually involves creative/software/content deliverables", "check whether background IP is carved out"]
+    },
+    {
+      "id": "license_access_restriction",
+      "clause": "license",
+      "document_types": ["software_saas_agreement"],
+      "risk_triggers": ["suspend", "disable access", "audit", "revocable", "non-transferable", "sole discretion"],
+      "mitigating_terms": ["notice", "cure period", "permitted users", "data export", "transition assistance"],
+      "base_severity": "medium",
+      "summary": "Software license rights may be restricted or interruptible.",
+      "why_risky": "Access can be suspended or restricted without enough process or transition protection.",
+      "suggested_question": "Can suspension require notice/cure and preserve data export after termination?",
+      "false_positive_checks": ["check if suspension only applies to security emergencies", "check if data export survives termination"]
+    }
+  ]
+}

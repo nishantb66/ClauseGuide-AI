@@ -1,0 +1,29 @@
+{
+  "rule_group": "rental_agreement",
+  "rules": [
+    {
+      "id": "deposit_refund_unclear",
+      "clause": "security_deposit",
+      "document_types": ["rental_agreement"],
+      "risk_triggers": ["security deposit", "deduct", "adjust", "damage", "refund"],
+      "mitigating_terms": ["within", "days", "actual", "invoice", "reasonable", "itemized"],
+      "base_severity": "medium",
+      "summary": "Security deposit refund or deduction rules may be unclear.",
+      "why_risky": "Ambiguous refund timing or deduction standards can reduce or delay refund.",
+      "suggested_question": "Can refund deadline, itemized deductions, and proof requirements be added?",
+      "false_positive_checks": ["check whether the refund timeline appears in termination or handover terms"]
+    },
+    {
+      "id": "maintenance_utility_allocation",
+      "clause": "maintenance",
+      "document_types": ["rental_agreement"],
+      "risk_triggers": ["maintenance", "utilities", "electricity", "water", "repairs", "all charges"],
+      "mitigating_terms": ["owner", "tenant", "landlord", "structural", "minor repairs", "meter reading"],
+      "base_severity": "medium",
+      "summary": "Maintenance or utility responsibility may need clearer allocation.",
+      "why_risky": "Unclear split of owner/tenant obligations can cause recurring disputes.",
+      "suggested_question": "Can owner and tenant duties for repairs, utilities, and association charges be split clearly?",
+      "false_positive_checks": ["check whether responsibilities are split across multiple clauses"]
+    }
+  ]
+}

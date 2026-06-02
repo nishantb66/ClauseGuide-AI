@@ -1,0 +1,29 @@
+{
+  "rule_group": "confidentiality",
+  "rules": [
+    {
+      "id": "overbroad_confidentiality_duration",
+      "clause": "confidentiality",
+      "document_types": ["nda", "employment_agreement", "service_agreement", "software_saas_agreement", "freelance_contract"],
+      "risk_triggers": ["perpetual", "forever", "indefinite", "all information", "whether or not marked"],
+      "mitigating_terms": ["trade secrets", "already known", "publicly available", "independently developed", "required by law"],
+      "base_severity": "medium",
+      "summary": "Confidentiality obligations may be broad or indefinite.",
+      "why_risky": "A receiving party may face long-term restrictions over information that should be excluded.",
+      "suggested_question": "Can the NDA include standard exclusions and limit duration except for trade secrets?",
+      "false_positive_checks": ["perpetual protection may be acceptable for trade secrets", "check whether standard exclusions are present"]
+    },
+    {
+      "id": "missing_return_destroy_process",
+      "clause": "confidentiality",
+      "document_types": ["nda", "service_agreement", "software_saas_agreement"],
+      "risk_triggers": ["return", "destroy", "delete"],
+      "mitigating_terms": ["legal archive", "backup", "certificate", "reasonable time"],
+      "base_severity": "low",
+      "summary": "Return or destruction process may need operational detail.",
+      "why_risky": "Without process details, parties may dispute what must be returned or deleted.",
+      "suggested_question": "Can return/destruction timing, backup exceptions, and certification be clarified?",
+      "false_positive_checks": ["check whether operational deletion is covered in data privacy terms"]
+    }
+  ]
+}

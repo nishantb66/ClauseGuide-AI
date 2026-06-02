@@ -1,0 +1,462 @@
+{
+  "clause_types": [
+    {
+      "aliases": [
+        "affiliate license licensee"
+      ],
+      "document_count": 510,
+      "id": "affiliate_license_licensee",
+      "label": "Affiliate License-Licensee",
+      "maps_to": "license",
+      "positive_answer_count": 115
+    },
+    {
+      "aliases": [
+        "affiliate license licensor"
+      ],
+      "document_count": 510,
+      "id": "affiliate_license_licensor",
+      "label": "Affiliate License-Licensor",
+      "maps_to": "license",
+      "positive_answer_count": 69
+    },
+    {
+      "aliases": [
+        "agreement date"
+      ],
+      "document_count": 510,
+      "id": "agreement_date",
+      "label": "Agreement Date",
+      "maps_to": "effective_date",
+      "positive_answer_count": 476
+    },
+    {
+      "aliases": [
+        "anti assignment",
+        "assignment requires consent",
+        "may not assign"
+      ],
+      "document_count": 510,
+      "id": "anti_assignment",
+      "label": "Anti-Assignment",
+      "maps_to": "assignment",
+      "positive_answer_count": 654
+    },
+    {
+      "aliases": [
+        "audit rights",
+        "books and records",
+        "inspect records"
+      ],
+      "document_count": 510,
+      "id": "audit_rights",
+      "label": "Audit Rights",
+      "maps_to": "audit_rights",
+      "positive_answer_count": 643
+    },
+    {
+      "aliases": [
+        "aggregate liability",
+        "cap on liability",
+        "liability cap"
+      ],
+      "document_count": 510,
+      "id": "cap_on_liability",
+      "label": "Cap On Liability",
+      "maps_to": "liability",
+      "positive_answer_count": 672
+    },
+    {
+      "aliases": [
+        "acquisition",
+        "change of control",
+        "merger"
+      ],
+      "document_count": 510,
+      "id": "change_of_control",
+      "label": "Change Of Control",
+      "maps_to": "assignment",
+      "positive_answer_count": 253
+    },
+    {
+      "aliases": [
+        "competitive restriction exception"
+      ],
+      "document_count": 510,
+      "id": "competitive_restriction_exception",
+      "label": "Competitive Restriction Exception",
+      "maps_to": "non_compete",
+      "positive_answer_count": 125
+    },
+    {
+      "aliases": [
+        "covenant not to sue"
+      ],
+      "document_count": 510,
+      "id": "covenant_not_to_sue",
+      "label": "Covenant Not To Sue",
+      "maps_to": "liability",
+      "positive_answer_count": 173
+    },
+    {
+      "aliases": [
+        "document name"
+      ],
+      "document_count": 510,
+      "id": "document_name",
+      "label": "Document Name",
+      "maps_to": "document_title",
+      "positive_answer_count": 521
+    },
+    {
+      "aliases": [
+        "effective date"
+      ],
+      "document_count": 510,
+      "id": "effective_date",
+      "label": "Effective Date",
+      "maps_to": "effective_date",
+      "positive_answer_count": 447
+    },
+    {
+      "aliases": [
+        "exclusivity"
+      ],
+      "document_count": 510,
+      "id": "exclusivity",
+      "label": "Exclusivity",
+      "maps_to": "exclusivity",
+      "positive_answer_count": 410
+    },
+    {
+      "aliases": [
+        "expiration date"
+      ],
+      "document_count": 510,
+      "id": "expiration_date",
+      "label": "Expiration Date",
+      "maps_to": "termination",
+      "positive_answer_count": 467
+    },
+    {
+      "aliases": [
+        "governing law",
+        "jurisdiction",
+        "laws of"
+      ],
+      "document_count": 510,
+      "id": "governing_law",
+      "label": "Governing Law",
+      "maps_to": "jurisdiction",
+      "positive_answer_count": 464
+    },
+    {
+      "aliases": [
+        "insurance"
+      ],
+      "document_count": 510,
+      "id": "insurance",
+      "label": "Insurance",
+      "maps_to": "liability",
+      "positive_answer_count": 560
+    },
+    {
+      "aliases": [
+        "intellectual property assignment",
+        "ip ownership",
+        "ip ownership assignment",
+        "work product"
+      ],
+      "document_count": 510,
+      "id": "ip_ownership_assignment",
+      "label": "Ip Ownership Assignment",
+      "maps_to": "ip_rights",
+      "positive_answer_count": 318
+    },
+    {
+      "aliases": [
+        "irrevocable or perpetual license"
+      ],
+      "document_count": 510,
+      "id": "irrevocable_or_perpetual_license",
+      "label": "Irrevocable Or Perpetual License",
+      "maps_to": "license",
+      "positive_answer_count": 165
+    },
+    {
+      "aliases": [
+        "joint ip ownership"
+      ],
+      "document_count": 510,
+      "id": "joint_ip_ownership",
+      "label": "Joint Ip Ownership",
+      "maps_to": "ip_rights",
+      "positive_answer_count": 115
+    },
+    {
+      "aliases": [
+        "license grant",
+        "licensed",
+        "permitted use"
+      ],
+      "document_count": 510,
+      "id": "license_grant",
+      "label": "License Grant",
+      "maps_to": "license",
+      "positive_answer_count": 777
+    },
+    {
+      "aliases": [
+        "damages",
+        "liquidated damages",
+        "penalty"
+      ],
+      "document_count": 510,
+      "id": "liquidated_damages",
+      "label": "Liquidated Damages",
+      "maps_to": "penalty",
+      "positive_answer_count": 121
+    },
+    {
+      "aliases": [
+        "minimum commitment",
+        "minimum fee",
+        "minimum purchase"
+      ],
+      "document_count": 510,
+      "id": "minimum_commitment",
+      "label": "Minimum Commitment",
+      "maps_to": "payment",
+      "positive_answer_count": 424
+    },
+    {
+      "aliases": [
+        "most favored nation"
+      ],
+      "document_count": 510,
+      "id": "most_favored_nation",
+      "label": "Most Favored Nation",
+      "maps_to": "pricing_parity",
+      "positive_answer_count": 38
+    },
+    {
+      "aliases": [
+        "no solicit of customers"
+      ],
+      "document_count": 510,
+      "id": "no_solicit_of_customers",
+      "label": "No-Solicit Of Customers",
+      "maps_to": "non_solicitation",
+      "positive_answer_count": 58
+    },
+    {
+      "aliases": [
+        "no solicit of employees"
+      ],
+      "document_count": 510,
+      "id": "no_solicit_of_employees",
+      "label": "No-Solicit Of Employees",
+      "maps_to": "non_solicitation",
+      "positive_answer_count": 91
+    },
+    {
+      "aliases": [
+        "compete",
+        "competitor",
+        "non compete",
+        "non-compete"
+      ],
+      "document_count": 510,
+      "id": "non_compete",
+      "label": "Non-Compete",
+      "maps_to": "non_compete",
+      "positive_answer_count": 259
+    },
+    {
+      "aliases": [
+        "non disparagement"
+      ],
+      "document_count": 510,
+      "id": "non_disparagement",
+      "label": "Non-Disparagement",
+      "maps_to": "non_disparagement",
+      "positive_answer_count": 65
+    },
+    {
+      "aliases": [
+        "non transferable license"
+      ],
+      "document_count": 510,
+      "id": "non_transferable_license",
+      "label": "Non-Transferable License",
+      "maps_to": "license",
+      "positive_answer_count": 298
+    },
+    {
+      "aliases": [
+        "notice period",
+        "notice period to terminate renewal",
+        "notice to terminate renewal",
+        "prior notice"
+      ],
+      "document_count": 510,
+      "id": "notice_period_to_terminate_renewal",
+      "label": "Notice Period To Terminate Renewal",
+      "maps_to": "notice_period",
+      "positive_answer_count": 122
+    },
+    {
+      "aliases": [
+        "parties"
+      ],
+      "document_count": 510,
+      "id": "parties",
+      "label": "Parties",
+      "maps_to": "parties",
+      "positive_answer_count": 2554
+    },
+    {
+      "aliases": [
+        "after termination",
+        "post termination services",
+        "post-termination",
+        "transition services"
+      ],
+      "document_count": 510,
+      "id": "post_termination_services",
+      "label": "Post-Termination Services",
+      "maps_to": "termination",
+      "positive_answer_count": 450
+    },
+    {
+      "aliases": [
+        "price restrictions"
+      ],
+      "document_count": 510,
+      "id": "price_restrictions",
+      "label": "Price Restrictions",
+      "maps_to": "payment",
+      "positive_answer_count": 27
+    },
+    {
+      "aliases": [
+        "automatic renewal",
+        "renew",
+        "renewal term"
+      ],
+      "document_count": 510,
+      "id": "renewal_term",
+      "label": "Renewal Term",
+      "maps_to": "auto_renewal",
+      "positive_answer_count": 210
+    },
+    {
+      "aliases": [
+        "profit sharing",
+        "revenue profit sharing",
+        "revenue sharing",
+        "royalty"
+      ],
+      "document_count": 510,
+      "id": "revenue_profit_sharing",
+      "label": "Revenue/Profit Sharing",
+      "maps_to": "payment",
+      "positive_answer_count": 418
+    },
+    {
+      "aliases": [
+        "rofr rofo rofn"
+      ],
+      "document_count": 510,
+      "id": "rofr_rofo_rofn",
+      "label": "Rofr/Rofo/Rofn",
+      "maps_to": "transfer_restrictions",
+      "positive_answer_count": 367
+    },
+    {
+      "aliases": [
+        "source code escrow"
+      ],
+      "document_count": 510,
+      "id": "source_code_escrow",
+      "label": "Source Code Escrow",
+      "maps_to": "software_escrow",
+      "positive_answer_count": 66
+    },
+    {
+      "aliases": [
+        "terminate without cause",
+        "termination for convenience"
+      ],
+      "document_count": 510,
+      "id": "termination_for_convenience",
+      "label": "Termination For Convenience",
+      "maps_to": "termination",
+      "positive_answer_count": 246
+    },
+    {
+      "aliases": [
+        "third party beneficiary"
+      ],
+      "document_count": 510,
+      "id": "third_party_beneficiary",
+      "label": "Third Party Beneficiary",
+      "maps_to": "third_party_rights",
+      "positive_answer_count": 39
+    },
+    {
+      "aliases": [
+        "uncapped liability",
+        "unlimited liability",
+        "without limitation"
+      ],
+      "document_count": 510,
+      "id": "uncapped_liability",
+      "label": "Uncapped Liability",
+      "maps_to": "liability",
+      "positive_answer_count": 167
+    },
+    {
+      "aliases": [
+        "unlimited all you can eat license"
+      ],
+      "document_count": 510,
+      "id": "unlimited_all_you_can_eat_license",
+      "label": "Unlimited/All-You-Can-Eat-License",
+      "maps_to": "license",
+      "positive_answer_count": 32
+    },
+    {
+      "aliases": [
+        "volume restriction"
+      ],
+      "document_count": 510,
+      "id": "volume_restriction",
+      "label": "Volume Restriction",
+      "maps_to": "performance_obligations",
+      "positive_answer_count": 171
+    },
+    {
+      "aliases": [
+        "warranty duration",
+        "warranty period"
+      ],
+      "document_count": 510,
+      "id": "warranty_duration",
+      "label": "Warranty Duration",
+      "maps_to": "warranty",
+      "positive_answer_count": 176
+    }
+  ],
+  "metadata": {
+    "atticus_url": "https://www.atticusprojectai.org/cuad/",
+    "contract_count": 510,
+    "cuad_label_count": 41,
+    "license": "CC BY 4.0",
+    "positive_answer_count": 13823,
+    "source": "theatticusproject/cuad",
+    "source_file": "CUAD_v1/CUAD_v1.json",
+    "source_url": "https://huggingface.co/datasets/theatticusproject/cuad"
+  },
+  "source_note": "Actual CUAD v1 label index derived from the official theatticusproject/cuad dataset. Runtime uses compact metadata/examples instead of loading full contracts."
+}

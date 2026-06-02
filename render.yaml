@@ -1,0 +1,78 @@
+services:
+  - type: web
+    name: clauseguide-ai-backend
+    env: python
+    rootDir: backend
+    plan: starter
+    buildCommand: pip install --upgrade pip && pip install -e .
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    autoDeploy: true
+    disk:
+      name: clauseguide-ai-storage
+      mountPath: /opt/render/project/src/backend/storage
+      sizeGB: 1
+    envVars:
+      - key: APP_NAME
+        value: ClauseGuide AI
+      - key: API_PREFIX
+        value: /api
+      - key: ENV
+        value: production
+      - key: LOG_LEVEL
+        value: INFO
+      - key: DATABASE_URL
+        value: sqlite+aiosqlite:///./storage/clauseguide.db
+      - key: UPLOAD_DIR
+        value: ./storage/uploads
+      - key: REPORT_DIR
+        value: ./storage/reports
+      - key: MAX_UPLOAD_MB
+        value: 25
+      - key: EMBEDDING_DIM
+        value: 384
+      - key: USE_SENTENCE_TRANSFORMERS
+        value: false
+      - key: USE_CROSS_ENCODER_RERANKER
+        value: false
+      - key: GROQ_BASE_URL
+        value: https://api.groq.com/openai/v1
+      - key: GROQ_MODEL
+        value: llama-3.1-8b-instant
+      - key: REQUEST_TIMEOUT_SECONDS
+        value: 30
+      - key: JWT_ISSUER
+        value: clauseguide-ai
+      - key: JWT_ACCESS_TOKEN_MINUTES
+        value: 720
+      - key: OTP_EXPIRY_MINUTES
+        value: 10
+      - key: OTP_MAX_ATTEMPTS
+        value: 5
+      - key: SMTP_ENABLED
+        value: true
+      - key: SMTP_HOST
+        value: smtp.gmail.com
+      - key: SMTP_PORT
+        value: 465
+      - key: GOOGLE_AUTO_SIGNUP_ENABLED
+        value: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: OTP_SECRET
+        generateValue: true
+      - key: SMTP_USERNAME
+        sync: false
+      - key: SMTP_FROM_EMAIL
+        sync: false
+      - key: SMTP_APP_PASSWORD
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_REDIRECT_URI
+        sync: false
+      - key: CORS_ORIGIN_CSV
+        sync: false

@@ -1,0 +1,48 @@
+{
+  "jurisdiction": "India",
+  "disclaimer": "Curated issue-spotting notes only. This is not legal advice and does not replace lawyer review.",
+  "notes": [
+    {
+      "id": "indian_contract_act_reasonableness",
+      "applies_to": ["penalty", "bond", "liability"],
+      "warning": "Penalty, liquidated damages, and bond recovery should be checked for reasonableness and proof of loss where applicable.",
+      "risk_triggers": ["penalty", "liquidated damages", "bond amount", "forfeit", "fixed damages"],
+      "recommended_check": "Ask whether the amount reflects genuine loss, actual training cost, or a reasonable pre-estimate."
+    },
+    {
+      "id": "employment_bond_india",
+      "applies_to": ["employment_bond", "employment_agreement"],
+      "warning": "Employment bond clauses should be reviewed for reasonableness, actual training-cost basis, and restraint-of-trade concerns.",
+      "risk_triggers": ["service bond", "minimum service", "training cost", "bond period", "liquidated damages"],
+      "recommended_check": "Check pro-rata reduction, itemized training cost, and whether the employee can exit if employer breaches."
+    },
+    {
+      "id": "non_compete_india",
+      "applies_to": ["employment_agreement", "employment_bond", "freelance_contract", "service_agreement"],
+      "warning": "Post-termination non-compete restrictions in India require careful review and may be difficult to enforce depending on facts.",
+      "risk_triggers": ["non-compete", "competitor", "restraint of trade", "after termination"],
+      "recommended_check": "Check duration, geography, business scope, role scope, and whether it is really confidentiality/non-solicit instead."
+    },
+    {
+      "id": "arbitration_india",
+      "applies_to": ["arbitration", "jurisdiction"],
+      "warning": "Arbitration clauses should specify seat/place, number of arbitrators, procedure, language, and interim relief/court jurisdiction where needed.",
+      "risk_triggers": ["arbitration", "arbitrator", "dispute resolution"],
+      "recommended_check": "Check seat, venue, governing law, appointment process, cost allocation, and interim relief."
+    },
+    {
+      "id": "stamp_registration_rent",
+      "applies_to": ["rental_agreement"],
+      "warning": "Rental/lease documents may require stamp duty and registration depending on duration, state, and local law.",
+      "risk_triggers": ["lease", "rent", "tenancy", "premises", "11 months", "12 months"],
+      "recommended_check": "Check state-specific stamp duty, registration requirement, lease term, and possession/handover proof."
+    },
+    {
+      "id": "data_protection_india",
+      "applies_to": ["software_saas_agreement", "service_agreement", "data_privacy"],
+      "warning": "Contracts involving personal data should define processing purpose, security safeguards, breach notification, subprocessors, and deletion/return.",
+      "risk_triggers": ["personal data", "data protection", "privacy", "subprocessor", "customer data"],
+      "recommended_check": "Check whether a DPA or security annexure exists and whether data is returned/deleted after termination."
+    }
+  ]
+}

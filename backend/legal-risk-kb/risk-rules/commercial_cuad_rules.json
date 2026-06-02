@@ -1,0 +1,65 @@
+{
+  "rule_group": "commercial_cuad",
+  "rules": [
+    {
+      "id": "exclusivity_broad_scope",
+      "clause": "exclusivity",
+      "document_types": ["service_agreement", "vendor_agreement", "software_saas_agreement", "freelance_contract", "government_empanelment"],
+      "risk_triggers": ["exclusive", "exclusivity", "sole", "only provider", "not appoint"],
+      "mitigating_terms": ["territory", "limited", "term", "minimum commitment", "performance", "carve-out"],
+      "base_severity": "medium",
+      "summary": "Exclusivity may restrict alternative business options.",
+      "why_risky": "Broad exclusivity can block working with other partners or customers without enough commercial protection.",
+      "suggested_question": "Can exclusivity be limited by territory, term, performance, and minimum commitment?",
+      "false_positive_checks": ["check whether exclusivity is narrow or tied to minimum volume", "check whether carve-outs exist"]
+    },
+    {
+      "id": "audit_rights_broad",
+      "clause": "audit_rights",
+      "document_types": ["service_agreement", "vendor_agreement", "software_saas_agreement", "government_empanelment"],
+      "risk_triggers": ["audit", "inspect", "books and records", "access records"],
+      "mitigating_terms": ["reasonable notice", "business hours", "confidential", "once per year", "reasonable frequency"],
+      "base_severity": "medium",
+      "summary": "Audit rights may be broad or operationally disruptive.",
+      "why_risky": "Unbounded audit rights can create confidentiality, cost, and disruption risk.",
+      "suggested_question": "Can audit rights require reasonable notice, frequency limits, confidentiality, and scope limits?",
+      "false_positive_checks": ["government or regulated deals may reasonably require broader audit rights"]
+    },
+    {
+      "id": "warranty_disclaimer_broad",
+      "clause": "warranty",
+      "document_types": ["software_saas_agreement", "service_agreement", "vendor_agreement"],
+      "risk_triggers": ["as is", "disclaims all warranties", "no warranty", "without warranty"],
+      "mitigating_terms": ["service levels", "professional manner", "conform", "remedy", "support"],
+      "base_severity": "medium",
+      "summary": "Warranty language may disclaim too much protection.",
+      "why_risky": "The customer may have limited remedy if services, products, or software fail to perform.",
+      "suggested_question": "Can minimum performance warranties and specific remedies be added?",
+      "false_positive_checks": ["as-is language may be acceptable for free/beta products", "check whether SLA/support terms provide practical remedy"]
+    },
+    {
+      "id": "change_of_control_assignment",
+      "clause": "assignment",
+      "document_types": ["service_agreement", "vendor_agreement", "software_saas_agreement", "freelance_contract"],
+      "risk_triggers": ["change of control", "merger", "assignment", "transfer", "successor"],
+      "mitigating_terms": ["prior written consent", "not unreasonably withheld", "affiliate", "successor to substantially all assets"],
+      "base_severity": "low",
+      "summary": "Assignment or change-of-control terms may affect who controls the agreement.",
+      "why_risky": "Rights or obligations may move to another party without enough consent or continuity protection.",
+      "suggested_question": "Can assignment require consent except for limited affiliate or merger scenarios?",
+      "false_positive_checks": ["standard merger exceptions may be acceptable if obligations remain intact"]
+    },
+    {
+      "id": "mfn_price_parity",
+      "clause": "pricing_parity",
+      "document_types": ["service_agreement", "vendor_agreement", "software_saas_agreement"],
+      "risk_triggers": ["most favored", "most favoured", "no less favorable", "best price", "price parity"],
+      "mitigating_terms": ["similarly situated", "same volume", "same scope", "excluding promotions", "limited term"],
+      "base_severity": "medium",
+      "summary": "Most-favored-customer or price-parity language may constrain future pricing.",
+      "why_risky": "The party may need to match better terms given to others, even when deal context differs.",
+      "suggested_question": "Can parity apply only to similarly situated customers with same volume, scope, and term?",
+      "false_positive_checks": ["check if promotions, affiliates, and different volumes are excluded"]
+    }
+  ]
+}

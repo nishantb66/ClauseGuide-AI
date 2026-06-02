@@ -1,0 +1,21 @@
+{
+  "document_type": "service_agreement",
+  "display_name": "Service Agreement",
+  "purpose": "Services, deliverables, performance obligations, fees, liability, and termination.",
+  "likely_user_role": "customer or service provider",
+  "stronger_party": "depends on template owner",
+  "expected_clauses": [
+    {"clause": "payment", "missing_severity": "medium", "why_expected": "Fees and payment triggers are core commercial terms."},
+    {"clause": "termination", "missing_severity": "medium", "why_expected": "Exit rights and payment for completed work should be clear."},
+    {"clause": "liability", "missing_severity": "high", "why_expected": "Service failures, indemnity, and damages need allocation."},
+    {"clause": "data_privacy", "missing_severity": "medium", "why_expected": "Relevant where services involve customer, personal, or confidential data."},
+    {"clause": "jurisdiction", "missing_severity": "medium", "why_expected": "Dispute forum matters in services disputes."}
+  ],
+  "recommended_clauses": ["arbitration", "scope_of_services", "performance_obligations", "acceptance"],
+  "review_focus": ["scope creep", "acceptance criteria", "payment for completed work", "liability cap", "IP ownership only if deliverables require it"],
+  "false_positive_guardrails": [
+    "Do not mark IP missing unless software, content, design, invention, data, or reusable deliverables are central.",
+    "Do not treat normal service obligations as risks unless unclear, one-sided, or tied to harsh consequences.",
+    "Do not mark payment missing if a schedule, annexure, SOW, or fee table appears."
+  ]
+}

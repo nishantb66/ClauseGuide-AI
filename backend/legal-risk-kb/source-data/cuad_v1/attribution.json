@@ -1,0 +1,10 @@
+{
+  "atticus_url": "https://www.atticusprojectai.org/cuad/",
+  "contract_count": 510,
+  "cuad_label_count": 41,
+  "license": "CC BY 4.0",
+  "positive_answer_count": 13823,
+  "source": "theatticusproject/cuad",
+  "source_file": "CUAD_v1/CUAD_v1.json",
+  "source_url": "https://huggingface.co/datasets/theatticusproject/cuad"
+}

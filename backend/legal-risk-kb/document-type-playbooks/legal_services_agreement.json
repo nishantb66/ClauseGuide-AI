@@ -1,0 +1,21 @@
+{
+  "document_type": "legal_services_agreement",
+  "display_name": "Legal Services Agreement",
+  "purpose": "Legal representation scope, fees, billing, withdrawal, and client duties.",
+  "likely_user_role": "client",
+  "stronger_party": "usually law firm because it drafts engagement terms",
+  "expected_clauses": [
+    {"clause": "scope_of_services", "missing_severity": "medium", "why_expected": "The covered legal matter and exclusions must be clear."},
+    {"clause": "payment", "missing_severity": "medium", "why_expected": "Fees, retainers, hourly rates, and billing are core terms."},
+    {"clause": "termination", "missing_severity": "medium", "why_expected": "Client discharge and firm withdrawal should be clear."},
+    {"clause": "confidentiality", "missing_severity": "low", "why_expected": "Professional confidentiality may be implied or handled by professional duties."},
+    {"clause": "liability", "missing_severity": "medium", "why_expected": "Responsibility, insurance, and limitation terms affect remedies."}
+  ],
+  "recommended_clauses": ["jurisdiction", "arbitration", "data_privacy"],
+  "review_focus": ["scope exclusions", "billing frequency", "rate schedule", "client discharge rights", "file retention", "conflict/dual representation"],
+  "false_positive_guardrails": [
+    "Do not classify this as employment merely because words like employee or staff appear in rate schedules.",
+    "Do not mark payment missing if hourly rates, retainer, billing statement, or rate schedule appears.",
+    "Do not overstate confidentiality missing where attorney-client or professional responsibility wording exists."
+  ]
+}
