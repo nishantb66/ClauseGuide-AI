@@ -49,18 +49,14 @@ def test_google_code_exchange_rejects_unconfigured_redirect() -> None:
 
 
 @pytest.mark.asyncio
-async def test_upload_rejects_oversized_file_and_removes_partial_copy(tmp_path) -> None:
+async def test_upload_rejects_oversized_file() -> None:
     service = DocumentService()
-    old_upload_dir = service.settings.upload_dir
     old_limit = service.settings.max_upload_mb
-    service.settings.upload_dir = str(tmp_path)
     service.settings.max_upload_mb = 1
     try:
         upload = UploadFile(filename="contract.pdf", file=BytesIO(b"x" * (1024 * 1024 + 1)))
         with pytest.raises(HTTPException) as error:
             await service.upload_document(None, upload, owner_user_id="user-id")
         assert error.value.status_code == 413
-        assert list(tmp_path.iterdir()) == []
     finally:
-        service.settings.upload_dir = old_upload_dir
         service.settings.max_upload_mb = old_limit

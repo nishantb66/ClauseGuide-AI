@@ -5,8 +5,7 @@ from dataclasses import dataclass
 from statistics import mean
 from typing import Any
 
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
+from app.core.mongo import MongoStore
 
 from app.core.settings import get_settings
 from app.models.clause import Clause, RiskFinding
@@ -54,7 +53,7 @@ class EvaluationService:
 
     async def run_evaluation(
         self,
-        session: AsyncSession,
+        session: MongoStore,
         *,
         document_id: str,
         run_label: str,
@@ -163,7 +162,7 @@ class EvaluationService:
         }
 
     async def list_runs(
-        self, session: AsyncSession, *, document_id: str, owner_user_id: str | None = None
+        self, session: MongoStore, *, document_id: str, owner_user_id: str | None = None
     ) -> dict:
         document = await session.get(Document, document_id)
         if document is None or (
@@ -171,12 +170,7 @@ class EvaluationService:
         ):
             raise ValueError("Document not found")
 
-        rows = await session.execute(
-            select(EvaluationRun)
-            .where(EvaluationRun.document_id == document_id)
-            .order_by(EvaluationRun.created_at.desc())
-        )
-        runs = rows.scalars().all()
+        runs = await session.find(EvaluationRun, {"document_id": document_id}, sort=[("created_at", -1)])
 
         return {
             "document_id": document_id,
@@ -191,17 +185,12 @@ class EvaluationService:
             ],
         }
 
-    async def get_run(self, session: AsyncSession, *, run_id: str) -> dict:
+    async def get_run(self, session: MongoStore, *, run_id: str) -> dict:
         run = await session.get(EvaluationRun, run_id)
         if run is None:
             raise ValueError("Evaluation run not found")
 
-        rows = await session.execute(
-            select(EvaluationResult)
-            .where(EvaluationResult.run_id == run_id)
-            .order_by(EvaluationResult.id.asc())
-        )
-        results = rows.scalars().all()
+        results = await session.find(EvaluationResult, {"run_id": run_id}, sort=[("id", 1)])
 
         return {
             "run_id": run.id,
@@ -231,23 +220,13 @@ class EvaluationService:
 
     async def _generate_default_test_cases(
         self,
-        session: AsyncSession,
+        session: MongoStore,
         *,
         document_id: str,
     ) -> list[EvaluationTestCase]:
-        clause_rows = await session.execute(
-            select(Clause)
-            .where(Clause.document_id == document_id)
-            .order_by(Clause.page_start.asc(), Clause.id.asc())
-        )
-        clauses = clause_rows.scalars().all()
+        clauses = await session.find(Clause, {"document_id": document_id}, sort=[("page_start", 1), ("id", 1)])
 
-        findings_rows = await session.execute(
-            select(RiskFinding)
-            .where(RiskFinding.document_id == document_id)
-            .order_by(RiskFinding.risk_score.desc())
-        )
-        findings = findings_rows.scalars().all()
+        findings = await session.find(RiskFinding, {"document_id": document_id}, sort=[("risk_score", -1)])
 
         cases: list[EvaluationTestCase] = []
         seen_questions: set[str] = set()
@@ -356,16 +335,15 @@ class EvaluationService:
         seen_questions.add(key)
         cases.append(case)
 
-    async def _risk_level_lookup(self, session: AsyncSession, *, document_id: str) -> dict[str, str]:
-        rows = await session.execute(
-            select(Clause.clause_type, RiskFinding.risk_level)
-            .join(RiskFinding, RiskFinding.clause_id == Clause.id)
-            .where(Clause.document_id == document_id)
-        )
+    async def _risk_level_lookup(self, session: MongoStore, *, document_id: str) -> dict[str, str]:
+        clauses = await session.find(Clause, {"document_id": document_id})
+        clause_types = {clause.id: clause.clause_type for clause in clauses}
+        findings = await session.find(RiskFinding, {"document_id": document_id})
         mapping: dict[str, str] = {}
-        for clause_type, risk_level in rows.all():
-            if clause_type not in mapping:
-                mapping[clause_type] = risk_level
+        for finding in findings:
+            clause_type = clause_types.get(finding.clause_id)
+            if clause_type and clause_type not in mapping:
+                mapping[clause_type] = finding.risk_level
         return mapping
 
     def _score_case(

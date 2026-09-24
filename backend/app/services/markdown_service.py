@@ -1,14 +1,9 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from pathlib import Path
-
-import anyio
 import fitz
 from fastapi import HTTPException, status
-from sqlalchemy import func, select
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
+from app.core.mongo import MongoStore, read_file_bytes
 
 from app.models.document import Document
 from app.models.markdown import MarkdownNote, MarkdownWorkspace
@@ -18,20 +13,18 @@ from app.schemas.markdown_schema import MarkdownNoteCreate, MarkdownNoteUpdate, 
 class MarkdownService:
     """Persistent PDF-anchored note workspaces for user-authored Markdown review."""
 
-    async def list_workspaces(self, session: AsyncSession, *, owner_user_id: str) -> list[dict]:
-        rows = await session.execute(
-            select(MarkdownWorkspace, Document, func.count(MarkdownNote.id))
-            .outerjoin(Document, MarkdownWorkspace.document_id == Document.id)
-            .outerjoin(MarkdownNote, MarkdownNote.workspace_id == MarkdownWorkspace.id)
-            .where(MarkdownWorkspace.owner_user_id == owner_user_id)
-            .group_by(MarkdownWorkspace.id, Document.id)
-            .order_by(MarkdownWorkspace.updated_at.desc())
-        )
-        return [self._workspace_item(workspace, document, notes_count) for workspace, document, notes_count in rows.all()]
+    async def list_workspaces(self, session: MongoStore, *, owner_user_id: str) -> list[dict]:
+        workspaces = await session.find(MarkdownWorkspace, {"owner_user_id": owner_user_id}, sort=[("updated_at", -1)])
+        items = []
+        for workspace in workspaces:
+            document = await session.get(Document, workspace.document_id) if workspace.document_id else None
+            count = await session.count(MarkdownNote, {"workspace_id": workspace.id})
+            items.append(self._workspace_item(workspace, document, count))
+        return items
 
     async def create_workspace(
         self,
-        session: AsyncSession,
+        session: MongoStore,
         payload: MarkdownWorkspaceCreate,
         *,
         owner_user_id: str,
@@ -39,13 +32,7 @@ class MarkdownService:
         document = None
         if payload.document_id:
             document = await self._load_document(session, payload.document_id, owner_user_id=owner_user_id)
-            existing = await session.execute(
-                select(MarkdownWorkspace).where(
-                    MarkdownWorkspace.owner_user_id == owner_user_id,
-                    MarkdownWorkspace.document_id == document.id,
-                )
-            )
-            workspace = existing.scalar_one_or_none()
+            workspace = await session.one(MarkdownWorkspace, {"owner_user_id": owner_user_id, "document_id": document.id})
             if workspace:
                 return await self.get_workspace(session, workspace.id, owner_user_id=owner_user_id)
 
@@ -60,7 +47,7 @@ class MarkdownService:
         await session.refresh(workspace)
         return await self.get_workspace(session, workspace.id, owner_user_id=owner_user_id)
 
-    async def get_workspace(self, session: AsyncSession, workspace_id: str, *, owner_user_id: str) -> dict:
+    async def get_workspace(self, session: MongoStore, workspace_id: str, *, owner_user_id: str) -> dict:
         workspace = await self._load_workspace(session, workspace_id, owner_user_id=owner_user_id)
         document = None
         lines: list[dict] = []
@@ -75,7 +62,7 @@ class MarkdownService:
         }
 
     async def get_or_create_for_document(
-        self, session: AsyncSession, document_id: str, *, owner_user_id: str
+        self, session: MongoStore, document_id: str, *, owner_user_id: str
     ) -> dict:
         return await self.create_workspace(
             session,
@@ -85,7 +72,7 @@ class MarkdownService:
 
     async def create_note(
         self,
-        session: AsyncSession,
+        session: MongoStore,
         workspace_id: str,
         payload: MarkdownNoteCreate,
         *,
@@ -109,7 +96,7 @@ class MarkdownService:
 
     async def update_note(
         self,
-        session: AsyncSession,
+        session: MongoStore,
         workspace_id: str,
         note_id: str,
         payload: MarkdownNoteUpdate,
@@ -132,7 +119,7 @@ class MarkdownService:
 
     async def delete_note(
         self,
-        session: AsyncSession,
+        session: MongoStore,
         workspace_id: str,
         note_id: str,
         *,
@@ -147,16 +134,16 @@ class MarkdownService:
         await session.commit()
         return {"status": "deleted"}
 
-    async def get_pdf_lines(self, session: AsyncSession, document_id: str, *, owner_user_id: str) -> list[dict]:
+    async def get_pdf_lines(self, session: MongoStore, document_id: str, *, owner_user_id: str) -> list[dict]:
         document = await self._load_document(session, document_id, owner_user_id=owner_user_id)
         if document.file_type != ".pdf":
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Markdown PDF notes currently require a PDF document.")
-        file_path = Path(document.file_path)
-        if not await anyio.Path(file_path).exists():
+        file_bytes = await read_file_bytes(document.id)
+        if not file_bytes:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document file not found")
 
         lines: list[dict] = []
-        with fitz.open(file_path) as pdf:
+        with fitz.open(stream=file_bytes, filetype="pdf") as pdf:
             for page_index, page in enumerate(pdf, start=1):
                 page_rect = page.rect
                 page_dict = page.get_text("dict", sort=True)
@@ -193,18 +180,14 @@ class MarkdownService:
                         )
         return lines
 
-    async def _load_workspace(self, session: AsyncSession, workspace_id: str, *, owner_user_id: str) -> MarkdownWorkspace:
-        row = await session.execute(
-            select(MarkdownWorkspace)
-            .options(selectinload(MarkdownWorkspace.notes))
-            .where(MarkdownWorkspace.id == workspace_id, MarkdownWorkspace.owner_user_id == owner_user_id)
-        )
-        workspace = row.scalar_one_or_none()
+    async def _load_workspace(self, session: MongoStore, workspace_id: str, *, owner_user_id: str) -> MarkdownWorkspace:
+        workspace = await session.one(MarkdownWorkspace, {"id": workspace_id, "owner_user_id": owner_user_id})
         if workspace is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Markdown workspace not found")
+        workspace.notes = await session.find(MarkdownNote, {"workspace_id": workspace_id}, sort=[("created_at", 1)])
         return workspace
 
-    async def _load_document(self, session: AsyncSession, document_id: str, *, owner_user_id: str) -> Document:
+    async def _load_document(self, session: MongoStore, document_id: str, *, owner_user_id: str) -> Document:
         document = await session.get(Document, document_id)
         if document is None or document.owner_user_id != owner_user_id:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")

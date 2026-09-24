@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+import asyncio
 from fastapi import HTTPException, status
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
+from app.core.mongo import MongoStore
 
 from app.core.settings import get_settings
 from app.models.chat import ChatMessage, ChatSession
@@ -32,7 +32,7 @@ class ChatService:
 
     async def ask(
         self,
-        session: AsyncSession,
+        session: MongoStore,
         *,
         document_id: str,
         question: str,
@@ -73,7 +73,7 @@ class ChatService:
 
     async def ask_ephemeral(
         self,
-        session: AsyncSession,
+        session: MongoStore,
         *,
         document_id: str,
         question: str,
@@ -92,7 +92,7 @@ class ChatService:
 
     async def _answer_pipeline(
         self,
-        session: AsyncSession,
+        session: MongoStore,
         *,
         document_id: str,
         question: str,
@@ -156,7 +156,11 @@ class ChatService:
                 total_pages=total_pages,
             )
 
-        result = self.llm.answer_contract_question(question=question, context_items=context_items)
+        result = await asyncio.to_thread(
+            self.llm.answer_contract_question,
+            question=question,
+            context_items=context_items,
+        )
         sources = result.get("sources", [])
 
         citation_score = self.citation_verifier.score(
@@ -215,7 +219,7 @@ class ChatService:
         return result
 
     async def _load_document(
-        self, session: AsyncSession, *, document_id: str, owner_user_id: str | None = None
+        self, session: MongoStore, *, document_id: str, owner_user_id: str | None = None
     ) -> Document:
         document = await session.get(Document, document_id)
         if document is None or (
@@ -252,7 +256,7 @@ class ChatService:
     async def _persist_messages(
         self,
         *,
-        session: AsyncSession,
+        session: MongoStore,
         chat_session_id: str,
         question: str,
         answer: str,
@@ -272,7 +276,7 @@ class ChatService:
     async def _document_overview_response(
         self,
         *,
-        session: AsyncSession,
+        session: MongoStore,
         document_id: str,
         session_id: str | None,
     ) -> dict:
@@ -280,28 +284,13 @@ class ChatService:
         if document is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
 
-        clause_rows = await session.execute(
-            select(Clause)
-            .where(Clause.document_id == document_id)
-            .order_by(Clause.page_start.asc(), Clause.id.asc())
-        )
-        clauses = clause_rows.scalars().all()
+        clauses = await session.find(Clause, {"document_id": document_id}, sort=[("page_start", 1), ("id", 1)])
 
-        finding_rows = await session.execute(
-            select(RiskFinding)
-            .where(RiskFinding.document_id == document_id)
-            .order_by(RiskFinding.risk_score.desc())
-            .limit(5)
+        findings = self._dedupe_findings(
+            await session.find(RiskFinding, {"document_id": document_id}, sort=[("risk_score", -1)], limit=5)
         )
-        findings = self._dedupe_findings(finding_rows.scalars().all())
 
-        page_rows = await session.execute(
-            select(DocumentPage)
-            .where(DocumentPage.document_id == document_id)
-            .order_by(DocumentPage.page_number.asc())
-            .limit(2)
-        )
-        pages = page_rows.scalars().all()
+        pages = await session.find(DocumentPage, {"document_id": document_id}, sort=[("page_number", 1)], limit=2)
 
         clause_labels = self._top_clause_labels(clauses)
         risk_sentence = self._overview_risk_sentence(findings)
@@ -361,18 +350,14 @@ class ChatService:
     async def _risk_summary_response(
         self,
         *,
-        session: AsyncSession,
+        session: MongoStore,
         document_id: str,
         session_id: str | None,
         required_clause_types: list[str],
     ) -> dict:
-        rows = await session.execute(
-            select(RiskFinding)
-            .where(RiskFinding.document_id == document_id)
-            .order_by(RiskFinding.risk_score.desc())
-            .limit(5)
+        findings = self._dedupe_findings(
+            await session.find(RiskFinding, {"document_id": document_id}, sort=[("risk_score", -1)], limit=5)
         )
-        findings = self._dedupe_findings(rows.scalars().all())
         if not findings:
             return self._unsupported_response(
                 intent="risk_summary",
@@ -384,8 +369,8 @@ class ChatService:
         clause_ids = [finding.clause_id for finding in findings if finding.clause_id is not None]
         clause_map: dict[int, Clause] = {}
         if clause_ids:
-            clause_rows = await session.execute(select(Clause).where(Clause.id.in_(clause_ids)))
-            clause_map = {clause.id: clause for clause in clause_rows.scalars().all()}
+            clauses = await session.find(Clause, {"id": {"$in": clause_ids}})
+            clause_map = {clause.id: clause for clause in clauses}
 
         lead_items = []
         sources = []

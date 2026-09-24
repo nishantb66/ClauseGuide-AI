@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.ext.asyncio import AsyncSession
+from app.core.mongo import MongoStore
 
 from app.core.auth import get_current_user
 from app.core.database import get_session
@@ -14,7 +14,7 @@ service = AnalysisService()
 @router.get("/{document_id}/analysis", response_model=AnalysisResponse)
 async def get_analysis(
     document_id: str,
-    session: AsyncSession = Depends(get_session),
+    session: MongoStore = Depends(get_session),
     current_user: User = Depends(get_current_user),
 ) -> AnalysisResponse:
     try:

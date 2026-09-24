@@ -175,16 +175,33 @@ export async function getDashboardStats(): Promise<DashboardStats> {
 }
 
 export async function uploadDocument(file: File): Promise<{ document_id: string; status: string }> {
-  const formData = new FormData();
-  formData.append("file", file);
-
-  const response = await fetch(`${API_BASE}/documents/upload`, {
+  const start = await fetch(`${API_BASE}/documents/uploads`, {
+    method: "POST",
+    headers: { ...authHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify({ file_name: file.name, size: file.size }),
+  });
+  const { upload_id, chunk_size } = await parseResponse(start) as { upload_id: string; chunk_size: number };
+  const chunkCount = Math.ceil(file.size / chunk_size);
+  let nextIndex = 0;
+  const uploadNext = async () => {
+    while (nextIndex < chunkCount) {
+      const index = nextIndex++;
+      const offset = index * chunk_size;
+      const chunk = file.slice(offset, Math.min(offset + chunk_size, file.size));
+      const response = await fetch(`${API_BASE}/documents/uploads/${upload_id}/chunks/${index}`, {
+        method: "PUT",
+        headers: authHeaders(),
+        body: chunk,
+      });
+      if (!response.ok) await parseResponse(response);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(3, chunkCount) }, uploadNext));
+  const completed = await fetch(`${API_BASE}/documents/uploads/${upload_id}/complete`, {
     method: "POST",
     headers: authHeaders(),
-    body: formData,
   });
-
-  return parseResponse(response);
+  return parseResponse(completed);
 }
 
 export async function processDocument(documentId: string): Promise<ProcessResponse> {

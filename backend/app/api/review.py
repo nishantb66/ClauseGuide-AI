@@ -1,18 +1,20 @@
 from typing import Annotated
+from urllib.parse import quote
 
 from fastapi import APIRouter, Depends
-from fastapi.responses import FileResponse
-from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi.responses import StreamingResponse
+from app.core.mongo import MongoStore
 
 from app.core.auth import get_current_user
 from app.core.database import get_session
+from app.core.mongo import file_chunks
 from app.models.user import User
 from app.schemas.review_schema import ImportantPointsResponse, ReviewWorkspaceResponse
 from app.services.document_review_service import DocumentReviewService
 
 router = APIRouter(prefix="/documents", tags=["review-workspace"])
 service = DocumentReviewService()
-SessionDep = Annotated[AsyncSession, Depends(get_session)]
+SessionDep = Annotated[MongoStore, Depends(get_session)]
 UserDep = Annotated[User, Depends(get_current_user)]
 
 
@@ -49,15 +51,15 @@ async def get_document_file(
     document_id: str,
     session: SessionDep,
     current_user: UserDep,
-) -> FileResponse:
-    document, file_path = await service.get_document_file(
+) -> StreamingResponse:
+    document = await service.get_document_file(
         session,
         document_id=document_id,
         owner_user_id=current_user.id,
     )
-    return FileResponse(
-        path=str(file_path),
-        filename=document.file_name,
+    return StreamingResponse(
+        file_chunks(document.id),
+        headers={"Content-Disposition": f"inline; filename*=UTF-8''{quote(document.file_name, safe='')}"},
         media_type=(
             "application/pdf" if document.file_type == ".pdf" else "application/octet-stream"
         ),

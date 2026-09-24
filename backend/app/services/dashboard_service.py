@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from sqlalchemy import func, select
-from sqlalchemy.ext.asyncio import AsyncSession
+from app.core.mongo import MongoStore
 
 from app.models.clause import Clause, RiskFinding
 from app.models.document import Document, DocumentStatus
@@ -9,60 +8,25 @@ from app.models.report import Report
 
 
 class DashboardService:
-    async def stats(self, session: AsyncSession, *, owner_user_id: str) -> dict:
-        document_ids_query = select(Document.id).where(Document.owner_user_id == owner_user_id)
-
-        documents_uploaded = await self._scalar_int(
-            session, select(func.count(Document.id)).where(Document.owner_user_id == owner_user_id)
-        )
-        documents_analyzed = await self._scalar_int(
-            session,
-            select(func.count(Document.id)).where(
-                Document.owner_user_id == owner_user_id,
-                Document.status == DocumentStatus.analyzed,
-            ),
-        )
-        total_risks = await self._scalar_int(
-            session,
-            select(func.count(RiskFinding.id)).where(
-                RiskFinding.document_id.in_(document_ids_query)
-            ),
-        )
-        high_or_critical = await self._scalar_int(
-            session,
-            select(func.count(RiskFinding.id)).where(
-                RiskFinding.document_id.in_(document_ids_query),
-                RiskFinding.risk_level.in_(["high", "critical"]),
-            ),
-        )
-        clauses_read = await self._scalar_int(
-            session, select(func.count(Clause.id)).where(Clause.document_id.in_(document_ids_query))
-        )
-        reports_generated = await self._scalar_int(
-            session, select(func.count(Report.id)).where(Report.document_id.in_(document_ids_query))
-        )
-        avg_score = await session.scalar(
-            select(func.avg(RiskFinding.risk_score)).where(
-                RiskFinding.document_id.in_(document_ids_query)
-            )
-        )
+    async def stats(self, session: MongoStore, *, owner_user_id: str) -> dict:
+        documents = await session.find(Document, {"owner_user_id": owner_user_id})
+        document_ids = [document.id for document in documents]
+        related = {"document_id": {"$in": document_ids}}
+        findings = await session.find(RiskFinding, related) if document_ids else []
+        documents_uploaded = len(documents)
+        documents_analyzed = sum(document.status == DocumentStatus.analyzed for document in documents)
+        total_risks = len(findings)
+        high_or_critical = sum(finding.risk_level in {"high", "critical"} for finding in findings)
+        clauses_read = await session.count(Clause, related) if document_ids else 0
+        reports_generated = await session.count(Report, related) if document_ids else 0
+        avg_score = sum(finding.risk_score or 0 for finding in findings) / total_risks if findings else 0
 
         risk_breakdown = {"critical": 0, "high": 0, "medium": 0, "low": 0}
-        rows = await session.execute(
-            select(RiskFinding.risk_level, func.count(RiskFinding.id))
-            .where(RiskFinding.document_id.in_(document_ids_query))
-            .group_by(RiskFinding.risk_level)
-        )
-        for level, count in rows.all():
+        for finding in findings:
+            level = finding.risk_level
             if level in risk_breakdown:
-                risk_breakdown[level] = int(count or 0)
+                risk_breakdown[level] += 1
 
-        latest_rows = await session.execute(
-            select(Document)
-            .where(Document.owner_user_id == owner_user_id)
-            .order_by(Document.uploaded_at.desc())
-            .limit(5)
-        )
         latest_documents = [
             {
                 "id": document.id,
@@ -73,7 +37,7 @@ class DashboardService:
                 "uploaded_at": document.uploaded_at,
                 "processed_at": document.processed_at,
             }
-            for document in latest_rows.scalars().all()
+            for document in sorted(documents, key=lambda item: item.uploaded_at, reverse=True)[:5]
         ]
 
         return {
@@ -87,7 +51,3 @@ class DashboardService:
             "latest_documents": latest_documents,
             "risk_level_breakdown": risk_breakdown,
         }
-
-    @staticmethod
-    async def _scalar_int(session: AsyncSession, statement) -> int:
-        return int((await session.scalar(statement)) or 0)
