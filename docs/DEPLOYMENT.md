@@ -12,6 +12,8 @@ evaluations, and reports use the single MongoDB namespace csi.clauseguide_ai.
 Every record has a kind field. Uploaded documents are split into 2 MB records
 so the app can accept files up to 25 MB within Vercel's request limit.
 The backend uses temporary disk space only while parsing a file.
+The production frontend and backend are deployed on Vercel. The owner chose
+an empty MongoDB start; no SQLite data was imported.
 
 ## Backend environment
 
@@ -47,12 +49,11 @@ Vite embeds these values at build time, so redeploy the frontend after any
 change. The Google Cloud OAuth client needs the frontend origin and callback
 URI in its authorized origin and redirect URI lists.
 
-## Importing existing data
+## Optional legacy data import
 
-Before changing the frontend API target, export the current SQLite database
-and its uploads/ and reports/ directories from the old persistent disk.
-Preserve that export until the new deployment has been verified. From
-backend/, validate the export:
+The production cutover used an empty collection. If an older SQLite snapshot
+is needed later, export its database and uploads/ and reports/ directories.
+From backend/, validate the export:
 
     python -m scripts.migrate_sqlite_to_mongo \
       --database /path/to/export/clauseguide.db \
@@ -61,15 +62,14 @@ backend/, validate the export:
 The command reports table counts and stops if a referenced file is missing.
 After checking the counts, add --apply. Re-running the import is safe: it
 inserts only missing records and restores the referenced file chunks.
-Use the latest persistent-disk export; the local development database may
-contain an older, separate snapshot.
+Confirm that the target collection has no conflicting records before importing.
 
-## Verification and cutover
+## Production verification
 
 1. Confirm the API health endpoint returns a status of ok.
-2. Verify sign-in, a document upload over 4.5 MB, analysis, PDF review, chat,
-   notes, report download, and evaluation on the new backend.
-3. Import the old data and compare user/document/report counts.
-4. Change the frontend's VITE_API_BASE and redeploy it.
-5. Verify Google sign-in and the full flow on the production frontend.
-6. Delete the old service after confirming the new deployment and data.
+2. Confirm the frontend bundle contains the Vercel API URL and no old API URL.
+3. Verify sign-in, a document upload over 4.5 MB, analysis, PDF review, chat,
+   notes, report download, and evaluation on the Vercel backend.
+4. Verify the Google OAuth redirect URI and complete sign-in with a real Google
+   account when one is available.
+5. The owner will delete the old deployment after checking the live site.
