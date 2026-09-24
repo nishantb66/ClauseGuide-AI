@@ -177,6 +177,11 @@ class AuthService:
             )
             session.add(user)
         else:
+            if user.is_email_verified and not user.is_active:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Account is disabled",
+                )
             if user.google_sub and user.google_sub != google_sub:
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
