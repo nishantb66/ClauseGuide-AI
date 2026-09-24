@@ -120,9 +120,6 @@ class DocumentService:
                     )
                 )
 
-            full_text = "\n\n".join(
-                page.cleaned_text for page in cleaned_pages if page.cleaned_text
-            )
             document_classification = self.document_classifier.classify(cleaned_pages)
             document.contract_type = document_classification.primary_document_type
 
