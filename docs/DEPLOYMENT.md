@@ -28,7 +28,7 @@ Recommended production values:
 After Render creates the backend, copy its URL. The API base will be:
 
 ```text
-https://clauseguide-ai-backend.onrender.com/api
+https://clauseguide-ai.onrender.com/api
 ```
 
 ## Frontend: Vercel
@@ -42,7 +42,7 @@ Create a Vercel project from this GitHub repository and set:
 Required Vercel environment variable:
 
 ```text
-VITE_API_BASE=https://clauseguide-ai-backend.onrender.com/api
+VITE_API_BASE=https://clauseguide-ai.onrender.com/api
 ```
 
 ## Google OAuth
@@ -62,6 +62,7 @@ https://clauseguide-ai.vercel.app/google/callback/
 ```
 
 Then set the same redirect URI in Render as `GOOGLE_REDIRECT_URI`.
+Set `GOOGLE_AUTO_SIGNUP_ENABLED=true` in Render to allow new users to create an account with Google.
 
 ## Storage Note
 

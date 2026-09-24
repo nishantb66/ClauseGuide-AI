@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import urllib.error
 import urllib.parse
 import urllib.request
 from datetime import UTC, datetime, timedelta
@@ -149,6 +150,12 @@ class AuthService:
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Google account email is not verified.",
             )
+        google_sub = str(claims.get("sub") or "")
+        if not google_sub:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Google account identity is missing.",
+            )
 
         user = await self._user_by_email(session, email)
         if user is None:
@@ -164,13 +171,18 @@ class AuthService:
                 email=email,
                 full_name=claims.get("name"),
                 auth_provider=AuthProvider.google,
-                google_sub=str(claims.get("sub")),
+                google_sub=google_sub,
                 is_active=True,
                 is_email_verified=True,
             )
             session.add(user)
         else:
-            user.google_sub = user.google_sub or str(claims.get("sub"))
+            if user.google_sub and user.google_sub != google_sub:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="This email is linked to a different Google account.",
+                )
+            user.google_sub = google_sub
             user.full_name = user.full_name or claims.get("name")
             user.is_active = True
             user.is_email_verified = True
@@ -246,6 +258,11 @@ class AuthService:
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Google SSO is not configured",
             )
+        if redirect_uri != self.settings.google_redirect_uri:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Google redirect URI does not match the configured callback.",
+            )
         body = urllib.parse.urlencode(
             {
                 "code": code,
@@ -261,8 +278,19 @@ class AuthService:
             headers={"Content-Type": "application/x-www-form-urlencoded"},
             method="POST",
         )
-        with urllib.request.urlopen(request, timeout=15) as response:
-            payload = json.loads(response.read().decode("utf-8"))
+        try:
+            with urllib.request.urlopen(request, timeout=15) as response:
+                payload = json.loads(response.read().decode("utf-8"))
+        except urllib.error.HTTPError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Google authorization expired or was rejected. Please try again.",
+            ) from exc
+        except (urllib.error.URLError, TimeoutError) as exc:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Google sign-in is temporarily unavailable. Please try again.",
+            ) from exc
         id_token = payload.get("id_token")
         if not id_token:
             raise HTTPException(
@@ -272,10 +300,21 @@ class AuthService:
 
     def _verify_google_id_token(self, id_token: str) -> dict[str, Any]:
         query = urllib.parse.urlencode({"id_token": id_token})
-        with urllib.request.urlopen(
-            f"https://oauth2.googleapis.com/tokeninfo?{query}", timeout=15
-        ) as response:
-            claims = json.loads(response.read().decode("utf-8"))
+        try:
+            with urllib.request.urlopen(
+                f"https://oauth2.googleapis.com/tokeninfo?{query}", timeout=15
+            ) as response:
+                claims = json.loads(response.read().decode("utf-8"))
+        except urllib.error.HTTPError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid or expired Google sign-in. Please try again.",
+            ) from exc
+        except (urllib.error.URLError, TimeoutError) as exc:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Google sign-in is temporarily unavailable. Please try again.",
+            ) from exc
         if claims.get("aud") != self.settings.google_client_id:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Google token audience"

@@ -68,6 +68,7 @@ const GOOGLE_CLIENT_ID =
 const GOOGLE_REDIRECT_URI =
   import.meta.env.VITE_GOOGLE_REDIRECT_URI ??
   `${window.location.origin.replace(/\/$/, "")}/google/callback/`;
+const GOOGLE_OAUTH_STATE_KEY = "clauseguide_google_oauth_state";
 
 type AuthMode = "login" | "register" | "verify";
 type PortalView = "dashboard" | "documents" | "markdown";
@@ -227,10 +228,10 @@ function App() {
 
   function handleError(err: unknown, fallback: string) {
     const detail = err instanceof Error ? err.message : fallback;
-    setError(detail);
-    if (/authentication|required|token|401|403/i.test(detail)) {
+    if (getStoredToken() && /authentication|required|token|401|403/i.test(detail)) {
       logout();
     }
+    setError(detail);
   }
 
   async function refreshDashboard() {
@@ -370,12 +371,17 @@ function App() {
   }
 
   function startGoogleSignIn() {
+    const state = Array.from(crypto.getRandomValues(new Uint8Array(32)), (byte) =>
+      byte.toString(16).padStart(2, "0")
+    ).join("");
+    sessionStorage.setItem(GOOGLE_OAUTH_STATE_KEY, state);
     const params = new URLSearchParams({
       client_id: GOOGLE_CLIENT_ID,
       redirect_uri: GOOGLE_REDIRECT_URI,
       response_type: "code",
       scope: "openid email profile",
       prompt: "select_account",
+      state,
     });
     window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
   }
@@ -514,9 +520,20 @@ function App() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const isGoogleCallback = window.location.pathname === "/google/callback/";
+    const isGoogleCallback = window.location.pathname.replace(/\/$/, "") === "/google/callback";
     const code = params.get("code");
-    if (!isGoogleCallback || !code) return;
+    if (!isGoogleCallback) return;
+    const expectedState = sessionStorage.getItem(GOOGLE_OAUTH_STATE_KEY);
+    sessionStorage.removeItem(GOOGLE_OAUTH_STATE_KEY);
+    window.history.replaceState({}, "", "/");
+    if (params.get("error")) {
+      setError("Google sign-in was cancelled or denied. Please try again.");
+      return;
+    }
+    if (!code || !expectedState || params.get("state") !== expectedState) {
+      setError("Google sign-in could not be verified. Please try again.");
+      return;
+    }
 
     setBusy(true);
     setError("");
@@ -524,7 +541,6 @@ function App() {
       .then((auth) => {
         setStoredSession(auth);
         handleAuthSuccess(auth.user);
-        window.history.replaceState({}, "", "/");
       })
       .catch((err) => handleError(err, "Google sign-in failed"))
       .finally(() => setBusy(false));

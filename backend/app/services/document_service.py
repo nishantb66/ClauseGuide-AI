@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-import shutil
+import uuid
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -49,11 +49,25 @@ class DocumentService:
                 detail=f"Unsupported file type: {extension}. Allowed: {sorted(self.settings.allowed_extensions)}",
             )
 
-        storage_path = (
-            self.settings.upload_path / f"{datetime.now(UTC).timestamp()}_{upload.filename}"
-        )
-        with storage_path.open("wb") as target:
-            shutil.copyfileobj(upload.file, target)
+        storage_path = self.settings.upload_path / f"{uuid.uuid4().hex}{extension}"
+        max_bytes = self.settings.max_upload_mb * 1024 * 1024
+        total_bytes = 0
+        try:
+            with storage_path.open("wb") as target:
+                while chunk := await upload.read(1024 * 1024):
+                    total_bytes += len(chunk)
+                    if total_bytes > max_bytes:
+                        raise HTTPException(
+                            status_code=status.HTTP_413_CONTENT_TOO_LARGE,
+                            detail=f"File exceeds the {self.settings.max_upload_mb} MB upload limit.",
+                        )
+                    target.write(chunk)
+        except Exception:
+            storage_path.unlink(missing_ok=True)
+            raise
+        if total_bytes == 0:
+            storage_path.unlink(missing_ok=True)
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="File is empty")
 
         title = Path(upload.filename).stem
         document = Document(

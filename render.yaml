@@ -55,7 +55,7 @@ services:
       - key: SMTP_PORT
         value: 465
       - key: GOOGLE_AUTO_SIGNUP_ENABLED
-        value: false
+        value: true
       - key: GROQ_API_KEY
         sync: false
       - key: JWT_SECRET
