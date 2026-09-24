@@ -1,6 +1,4 @@
 from functools import lru_cache
-from pathlib import Path
-
 from pydantic import Field, computed_field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -11,9 +9,9 @@ class Settings(BaseSettings):
     env: str = Field(default="dev")
     log_level: str = Field(default="INFO")
 
-    database_url: str = Field(default="sqlite+aiosqlite:///./storage/clauseguide.db")
-    upload_dir: str = Field(default="./storage/uploads")
-    report_dir: str = Field(default="./storage/reports")
+    mongodb_uri: str | None = Field(default=None)
+    mongodb_database: str = Field(default="csi")
+    mongodb_collection: str = Field(default="clauseguide_ai")
     max_upload_mb: int = Field(default=25)
 
     embedding_dim: int = Field(default=384)
@@ -28,7 +26,7 @@ class Settings(BaseSettings):
 
     groq_api_key: str | None = Field(default=None)
     groq_base_url: str = Field(default="https://api.groq.com/openai/v1")
-    groq_model: str = Field(default="llama-3.1-8b-instant")
+    groq_model: str = Field(default="openai/gpt-oss-20b")
     request_timeout_seconds: int = Field(default=30)
     llm_max_retries: int = Field(default=2)
     llm_retry_backoff_seconds: float = Field(default=1.1)
@@ -56,7 +54,7 @@ class Settings(BaseSettings):
     google_auto_signup_enabled: bool = Field(default=False)
     cors_origin_csv: str = Field(default="http://localhost:5173,http://127.0.0.1:5173")
 
-    model_config = SettingsConfigDict(env_file=".env", case_sensitive=False)
+    model_config = SettingsConfigDict(env_file=".env", case_sensitive=False, extra="ignore")
 
     @property
     def allowed_extensions(self) -> set[str]:
@@ -66,19 +64,6 @@ class Settings(BaseSettings):
     @property
     def cors_origins(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origin_csv.split(",") if origin.strip()]
-
-    @property
-    def upload_path(self) -> Path:
-        path = Path(self.upload_dir)
-        path.mkdir(parents=True, exist_ok=True)
-        return path
-
-    @property
-    def report_path(self) -> Path:
-        path = Path(self.report_dir)
-        path.mkdir(parents=True, exist_ok=True)
-        return path
-
 
 @lru_cache
 def get_settings() -> Settings:

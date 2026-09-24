@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
+from app.core.mongo import MongoStore
 
 from app.models.clause import Clause, RiskFinding
 from app.models.document import Document
@@ -9,7 +8,7 @@ from app.models.document import Document
 
 class ClauseService:
     async def list_clauses(
-        self, session: AsyncSession, document_id: str, *, owner_user_id: str | None = None
+        self, session: MongoStore, document_id: str, *, owner_user_id: str | None = None
     ) -> dict:
         document = await session.get(Document, document_id)
         if document is None or (
@@ -17,19 +16,8 @@ class ClauseService:
         ):
             raise ValueError("Document not found")
 
-        clauses_query = await session.execute(
-            select(Clause)
-            .where(Clause.document_id == document_id)
-            .order_by(Clause.page_start.asc(), Clause.id.asc())
-        )
-        clauses = clauses_query.scalars().all()
-
-        findings_query = await session.execute(
-            select(RiskFinding)
-            .where(RiskFinding.document_id == document_id)
-            .order_by(RiskFinding.risk_score.desc())
-        )
-        findings = findings_query.scalars().all()
+        clauses = await session.find(Clause, {"document_id": document_id}, sort=[("page_start", 1), ("id", 1)])
+        findings = await session.find(RiskFinding, {"document_id": document_id}, sort=[("risk_score", -1)])
 
         top_risk_by_clause: dict[int, RiskFinding] = {}
         for finding in findings:
@@ -60,7 +48,7 @@ class ClauseService:
 
     async def get_clause_detail(
         self,
-        session: AsyncSession,
+        session: MongoStore,
         document_id: str,
         clause_id: int,
         *,
@@ -76,12 +64,9 @@ class ClauseService:
         if clause is None or clause.document_id != document_id:
             raise ValueError("Clause not found")
 
-        findings_query = await session.execute(
-            select(RiskFinding)
-            .where(RiskFinding.document_id == document_id, RiskFinding.clause_id == clause.id)
-            .order_by(RiskFinding.risk_score.desc())
+        findings = await session.find(
+            RiskFinding, {"document_id": document_id, "clause_id": clause.id}, sort=[("risk_score", -1)]
         )
-        findings = findings_query.scalars().all()
 
         return {
             "id": clause.id,

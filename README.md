@@ -33,7 +33,6 @@ ClauseGuide AI/
   backend/
   frontend/
   docs/
-  docker-compose.yml
 ```
 
 ## Backend Setup
@@ -64,7 +63,9 @@ Open [http://localhost:5173](http://localhost:5173)
 
 ## API Endpoints (Part 5)
 
-- `POST /api/documents/upload`
+- `POST /api/documents/uploads`
+- `PUT /api/documents/uploads/{upload_id}/chunks/{index}`
+- `POST /api/documents/uploads/{upload_id}/complete`
 - `POST /api/documents/{document_id}/process`
 - `GET /api/documents`
 - `GET /api/documents/{document_id}/analysis`
@@ -86,4 +87,4 @@ Open [http://localhost:5173](http://localhost:5173)
 
 ## Next Phase (Part 6)
 
-- Deployment hardening, CI/CD, and production packaging
+- See [Vercel deployment](docs/DEPLOYMENT.md) for the current two-project setup.

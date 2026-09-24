@@ -6,8 +6,7 @@ from collections import Counter
 from dataclasses import dataclass
 from typing import ClassVar
 
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
+from app.core.mongo import MongoStore
 
 from app.core.settings import get_settings
 from app.models.document import DocumentChunk
@@ -99,7 +98,7 @@ class HybridRetriever:
 
     async def retrieve(
         self,
-        session: AsyncSession,
+        session: MongoStore,
         *,
         document_id: str,
         query: str,
@@ -111,8 +110,7 @@ class HybridRetriever:
         del semantic_pool, keyword_pool  # candidate generation is unified now
 
         required_clause_types = required_clause_types or []
-        rows = await session.execute(select(DocumentChunk).where(DocumentChunk.document_id == document_id))
-        all_chunks = rows.scalars().all()
+        all_chunks = await session.find(DocumentChunk, {"document_id": document_id})
         if not all_chunks:
             return RetrievalResult(
                 items=[],

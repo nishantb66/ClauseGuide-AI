@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.ext.asyncio import AsyncSession
+from app.core.mongo import MongoStore
 
 from app.core.auth import get_current_user
 from app.core.database import get_session
@@ -19,7 +19,7 @@ service = EvaluationService()
 async def run_evaluation(
     document_id: str,
     payload: EvaluationRunRequest,
-    session: AsyncSession = Depends(get_session),
+    session: MongoStore = Depends(get_session),
     current_user: User = Depends(get_current_user),
 ) -> EvaluationRunResponse:
     try:
@@ -47,7 +47,7 @@ async def run_evaluation(
 @router.get("/{document_id}/evaluations", response_model=EvaluationRunListResponse)
 async def list_evaluation_runs(
     document_id: str,
-    session: AsyncSession = Depends(get_session),
+    session: MongoStore = Depends(get_session),
     current_user: User = Depends(get_current_user),
 ) -> EvaluationRunListResponse:
     try:

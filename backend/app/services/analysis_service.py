@@ -2,9 +2,7 @@ from __future__ import annotations
 
 import re
 
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
-
+from app.core.mongo import MongoStore
 from app.models.clause import Clause, RiskFinding
 from app.models.document import Document, DocumentPage
 from app.services.clause_normalizer import ClauseNormalizer
@@ -33,7 +31,7 @@ class AnalysisService:
         self.verifier = VerificationService(self.kb)
 
     async def get_analysis(
-        self, session: AsyncSession, document_id: str, *, owner_user_id: str | None = None
+        self, session: MongoStore, document_id: str, *, owner_user_id: str | None = None
     ) -> dict:
         document = await session.get(Document, document_id)
         if document is None or (
@@ -41,14 +39,10 @@ class AnalysisService:
         ):
             raise ValueError("Document not found")
 
-        clause_rows = await session.execute(select(Clause).where(Clause.document_id == document_id))
-        clauses = clause_rows.scalars().all()
-        page_rows = await session.execute(
-            select(DocumentPage)
-            .where(DocumentPage.document_id == document_id)
-            .order_by(DocumentPage.page_number.asc())
+        clauses = await session.find(Clause, {"document_id": document_id})
+        pages = await session.find(
+            DocumentPage, {"document_id": document_id}, sort=[("page_number", 1)]
         )
-        pages = page_rows.scalars().all()
         full_text = "\n".join(page.cleaned_text for page in pages)
         page_inputs = [
             CleanedPage(
@@ -59,12 +53,9 @@ class AnalysisService:
         document_classification = self.document_classifier.classify(page_inputs)
         party_roles = self.party_extractor.extract(full_text)
 
-        finding_rows = await session.execute(
-            select(RiskFinding)
-            .where(RiskFinding.document_id == document_id)
-            .order_by(RiskFinding.risk_score.desc())
+        findings = await session.find(
+            RiskFinding, {"document_id": document_id}, sort=[("risk_score", -1)]
         )
-        findings = finding_rows.scalars().all()
         unique_findings = self._dedupe_findings(findings)
 
         clause_map = {clause.id: clause for clause in clauses}

@@ -1,7 +1,7 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, status
-from sqlalchemy.ext.asyncio import AsyncSession
+from app.core.mongo import MongoStore
 
 from app.core.auth import get_current_user
 from app.core.database import get_session
@@ -19,7 +19,7 @@ from app.services.markdown_service import MarkdownService
 
 router = APIRouter(prefix="/markdown", tags=["markdown-notes"])
 service = MarkdownService()
-SessionDep = Annotated[AsyncSession, Depends(get_session)]
+SessionDep = Annotated[MongoStore, Depends(get_session)]
 UserDep = Annotated[User, Depends(get_current_user)]
 
 

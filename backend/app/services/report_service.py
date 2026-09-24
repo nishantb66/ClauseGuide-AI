@@ -2,11 +2,8 @@ from __future__ import annotations
 
 import re
 from datetime import UTC, datetime
-from pathlib import Path
 
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
-
+from app.core.mongo import MongoStore, delete_file_chunks, has_file_chunk, put_file_chunk
 from app.core.settings import get_settings
 from app.models.clause import Clause, RiskFinding
 from app.models.document import Document, DocumentStatus
@@ -45,7 +42,7 @@ class ReportService:
 
     async def generate_report(
         self,
-        session: AsyncSession,
+        session: MongoStore,
         *,
         document_id: str,
         output_format: str,
@@ -65,19 +62,8 @@ class ReportService:
             session, document_id, owner_user_id=owner_user_id
         )
 
-        clause_rows = await session.execute(
-            select(Clause)
-            .where(Clause.document_id == document_id)
-            .order_by(Clause.page_start.asc(), Clause.id.asc())
-        )
-        clauses = clause_rows.scalars().all()
-
-        finding_rows = await session.execute(
-            select(RiskFinding)
-            .where(RiskFinding.document_id == document_id)
-            .order_by(RiskFinding.risk_score.desc())
-        )
-        findings = finding_rows.scalars().all()
+        clauses = await session.find(Clause, {"document_id": document_id}, sort=[("page_start", 1), ("id", 1)])
+        findings = await session.find(RiskFinding, {"document_id": document_id}, sort=[("risk_score", -1)])
 
         payload = self._build_payload(
             document=document, analysis=analysis, clauses=clauses, findings=findings
@@ -91,8 +77,10 @@ class ReportService:
         report_id = self._new_report_id()
         extension = "md" if normalized_format == "markdown" else "txt"
         file_name = self._build_file_name(document.title, report_id, extension)
-        file_path = self.settings.report_path / file_name
-        file_path.write_text(content, encoding="utf-8")
+        file_path = f"mongo:{report_id}"
+        encoded = content.encode("utf-8")
+        for index, offset in enumerate(range(0, len(encoded), 2 * 1024 * 1024)):
+            await put_file_chunk(report_id, index, encoded[offset : offset + 2 * 1024 * 1024])
 
         report = Report(
             id=report_id,
@@ -103,13 +91,17 @@ class ReportService:
             summary_json=payload,
         )
         session.add(report)
-        await session.commit()
+        try:
+            await session.commit()
+        except Exception:
+            await delete_file_chunks(report_id)
+            raise
         await session.refresh(report)
 
         return self._to_report_response(report)
 
     async def list_reports(
-        self, session: AsyncSession, *, document_id: str, owner_user_id: str | None = None
+        self, session: MongoStore, *, document_id: str, owner_user_id: str | None = None
     ) -> dict:
         document = await session.get(Document, document_id)
         if document is None or (
@@ -117,12 +109,7 @@ class ReportService:
         ):
             raise ValueError("Document not found")
 
-        report_rows = await session.execute(
-            select(Report)
-            .where(Report.document_id == document_id)
-            .order_by(Report.created_at.desc())
-        )
-        reports = report_rows.scalars().all()
+        reports = await session.find(Report, {"document_id": document_id}, sort=[("created_at", -1)])
 
         return {
             "document_id": document_id,
@@ -139,7 +126,7 @@ class ReportService:
         }
 
     async def get_report_summary(
-        self, session: AsyncSession, *, report_id: str, owner_user_id: str | None = None
+        self, session: MongoStore, *, report_id: str, owner_user_id: str | None = None
     ) -> dict:
         report = await session.get(Report, report_id)
         if report is None:
@@ -155,21 +142,19 @@ class ReportService:
         }
 
     async def get_report_file(
-        self, session: AsyncSession, *, report_id: str, owner_user_id: str | None = None
-    ) -> tuple[Report, Path]:
+        self, session: MongoStore, *, report_id: str, owner_user_id: str | None = None
+    ) -> Report:
         report = await session.get(Report, report_id)
         if report is None:
             raise ValueError("Report not found")
         await self._ensure_report_owner(session, report, owner_user_id)
 
-        file_path = Path(report.file_path)
-        if not file_path.exists():
-            raise ValueError("Report file not found on disk")
-
-        return report, file_path
+        if not await has_file_chunk(report.id, 0):
+            raise ValueError("Report file not found")
+        return report
 
     async def _ensure_report_owner(
-        self, session: AsyncSession, report: Report, owner_user_id: str | None
+        self, session: MongoStore, report: Report, owner_user_id: str | None
     ) -> None:
         if owner_user_id is None:
             return

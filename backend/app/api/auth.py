@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends
-from sqlalchemy.ext.asyncio import AsyncSession
+from app.core.mongo import MongoStore
 
 from app.core.auth import get_current_user
 from app.core.database import get_session
@@ -26,7 +26,7 @@ service = AuthService()
 @router.post("/register", response_model=RegisterResponse)
 async def register(
     payload: RegisterRequest,
-    session: AsyncSession = Depends(get_session),
+    session: MongoStore = Depends(get_session),
 ) -> RegisterResponse:
     user = await service.register(
         session,
@@ -45,7 +45,7 @@ async def register(
 @router.post("/verify-otp", response_model=AuthResponse)
 async def verify_otp(
     payload: VerifyOTPRequest,
-    session: AsyncSession = Depends(get_session),
+    session: MongoStore = Depends(get_session),
 ) -> AuthResponse:
     return AuthResponse(
         **await service.verify_otp(session, email=str(payload.email), otp=payload.otp)
@@ -55,7 +55,7 @@ async def verify_otp(
 @router.post("/resend-otp", response_model=MessageResponse)
 async def resend_otp(
     payload: ResendOTPRequest,
-    session: AsyncSession = Depends(get_session),
+    session: MongoStore = Depends(get_session),
 ) -> MessageResponse:
     await service.resend_otp(session, email=str(payload.email))
     return MessageResponse(message="A new verification OTP has been sent.")
@@ -64,7 +64,7 @@ async def resend_otp(
 @router.post("/login", response_model=AuthResponse)
 async def login(
     payload: LoginRequest,
-    session: AsyncSession = Depends(get_session),
+    session: MongoStore = Depends(get_session),
 ) -> AuthResponse:
     return AuthResponse(
         **await service.login(session, email=str(payload.email), password=payload.password)
@@ -74,7 +74,7 @@ async def login(
 @router.post("/google", response_model=AuthResponse)
 async def google_auth(
     payload: GoogleAuthRequest,
-    session: AsyncSession = Depends(get_session),
+    session: MongoStore = Depends(get_session),
 ) -> AuthResponse:
     return AuthResponse(
         **await service.google_auth(

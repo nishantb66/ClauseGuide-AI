@@ -1,0 +1,13 @@
+**/.env
+**/.env.*
+**/.venv/**
+**/node_modules/**
+**/__pycache__/**
+**/.pytest_cache/**
+**/.ruff_cache/**
+**/.vercel/**
+backend/storage/**
+backend/tests/**
+backend/scripts/**
+backend/legal-risk-kb/source-data/cuad_v1/CUAD_v1.json
+frontend/dist/**

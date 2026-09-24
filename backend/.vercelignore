@@ -1,0 +1,8 @@
+.env
+.env.*
+.venv/
+storage/
+tests/
+scripts/
+*.egg-info/
+legal-risk-kb/source-data/cuad_v1/CUAD_v1.json

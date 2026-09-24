@@ -1,14 +1,17 @@
 from __future__ import annotations
 
 import logging
+import math
+import tempfile
 import uuid
 from datetime import UTC, datetime
 from pathlib import Path
 
 from fastapi import HTTPException, UploadFile, status
-from sqlalchemy import delete, select
-from sqlalchemy.ext.asyncio import AsyncSession
-
+from app.core.mongo import (
+    MongoStore, create_upload, delete_file_chunks, file_chunks, finish_upload,
+    get_upload, has_file_chunk, put_file_chunk,
+)
 from app.core.settings import get_settings
 from app.models.clause import Clause, RiskFinding
 from app.models.document import Document, DocumentChunk, DocumentPage, DocumentStatus
@@ -37,7 +40,7 @@ class DocumentService:
         self.risk_engine = RiskEngine()
 
     async def upload_document(
-        self, session: AsyncSession, upload: UploadFile, *, owner_user_id: str
+        self, session: MongoStore, upload: UploadFile, *, owner_user_id: str
     ) -> Document:
         if not upload.filename:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Missing file name")
@@ -49,65 +52,120 @@ class DocumentService:
                 detail=f"Unsupported file type: {extension}. Allowed: {sorted(self.settings.allowed_extensions)}",
             )
 
-        storage_path = self.settings.upload_path / f"{uuid.uuid4().hex}{extension}"
+        file_id = uuid.uuid4().hex
         max_bytes = self.settings.max_upload_mb * 1024 * 1024
         total_bytes = 0
+        index = 0
         try:
-            with storage_path.open("wb") as target:
-                while chunk := await upload.read(1024 * 1024):
-                    total_bytes += len(chunk)
-                    if total_bytes > max_bytes:
-                        raise HTTPException(
-                            status_code=status.HTTP_413_CONTENT_TOO_LARGE,
-                            detail=f"File exceeds the {self.settings.max_upload_mb} MB upload limit.",
-                        )
-                    target.write(chunk)
+            while chunk := await upload.read(2 * 1024 * 1024):
+                total_bytes += len(chunk)
+                if total_bytes > max_bytes:
+                    raise HTTPException(
+                        status_code=status.HTTP_413_CONTENT_TOO_LARGE,
+                        detail=f"File exceeds the {self.settings.max_upload_mb} MB upload limit.",
+                    )
+                await put_file_chunk(file_id, index, chunk)
+                index += 1
         except Exception:
-            storage_path.unlink(missing_ok=True)
+            await delete_file_chunks(file_id)
             raise
         if total_bytes == 0:
-            storage_path.unlink(missing_ok=True)
+            await delete_file_chunks(file_id)
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="File is empty")
 
         title = Path(upload.filename).stem
         document = Document(
+            id=file_id,
             owner_user_id=owner_user_id,
             title=title,
             file_name=upload.filename,
             file_type=extension,
-            file_path=str(storage_path),
+            file_path=f"mongo:{file_id}",
+            status=DocumentStatus.uploaded,
+        )
+        session.add(document)
+        try:
+            await session.commit()
+        except Exception:
+            await delete_file_chunks(file_id)
+            raise
+        await session.refresh(document)
+        return document
+
+    async def start_chunked_upload(self, *, owner_user_id: str, file_name: str, size: int) -> dict:
+        extension = Path(file_name).suffix.lower()
+        if extension not in self.settings.allowed_extensions:
+            raise HTTPException(status_code=400, detail="Unsupported file type")
+        if size < 1 or size > self.settings.max_upload_mb * 1024 * 1024:
+            raise HTTPException(status_code=413, detail="Invalid file size")
+        file_id = await create_upload(owner_user_id, file_name, size)
+        return {"upload_id": file_id, "chunk_size": 2 * 1024 * 1024}
+
+    async def add_upload_chunk(self, *, owner_user_id: str, upload_id: str, index: int, data: bytes) -> None:
+        upload = await get_upload(upload_id, owner_user_id)
+        if not upload or upload["complete"]:
+            raise HTTPException(status_code=404, detail="Upload not found")
+        chunk_size = 2 * 1024 * 1024
+        count = math.ceil(upload["size"] / chunk_size)
+        expected = chunk_size if index < count - 1 else upload["size"] - chunk_size * (count - 1)
+        if index < 0 or index >= count or len(data) != expected:
+            raise HTTPException(status_code=400, detail="Invalid chunk size or index")
+        await put_file_chunk(upload_id, index, data, expires_at=upload["expires_at"])
+
+    async def finish_chunked_upload(self, session: MongoStore, *, owner_user_id: str, upload_id: str) -> Document:
+        upload = await get_upload(upload_id, owner_user_id)
+        if not upload:
+            raise HTTPException(status_code=404, detail="Upload not found")
+        existing = await session.get(Document, upload_id)
+        if existing:
+            return existing
+        count = math.ceil(upload["size"] / (2 * 1024 * 1024))
+        for index in range(count):
+            if not await has_file_chunk(upload_id, index):
+                raise HTTPException(status_code=409, detail=f"Missing chunk {index}")
+        await finish_upload(upload_id, owner_user_id)
+        document = Document(
+            id=upload_id,
+            owner_user_id=owner_user_id,
+            title=Path(upload["file_name"]).stem,
+            file_name=upload["file_name"],
+            file_type=Path(upload["file_name"]).suffix.lower(),
+            file_path=f"mongo:{upload_id}",
             status=DocumentStatus.uploaded,
         )
         session.add(document)
         await session.commit()
-        await session.refresh(document)
         return document
 
     async def process_document(
         self,
-        session: AsyncSession,
+        session: MongoStore,
         document_id: str,
         *,
         owner_user_id: str,
     ) -> tuple[Document, int, int, int]:
         document = await self.get_document(session, document_id, owner_user_id=owner_user_id)
 
-        file_path = Path(document.file_path)
-        if not file_path.exists():
+        if not await has_file_chunk(document.id, 0):
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail="Uploaded file not found"
             )
 
-        await session.execute(delete(DocumentPage).where(DocumentPage.document_id == document_id))
-        await session.execute(delete(DocumentChunk).where(DocumentChunk.document_id == document_id))
-        await session.execute(delete(Clause).where(Clause.document_id == document_id))
-        await session.execute(delete(RiskFinding).where(RiskFinding.document_id == document_id))
+        await session.delete_many(DocumentPage, {"document_id": document_id})
+        await session.delete_many(DocumentChunk, {"document_id": document_id})
+        await session.delete_many(Clause, {"document_id": document_id})
+        await session.delete_many(RiskFinding, {"document_id": document_id})
 
         try:
             document.status = DocumentStatus.parsing
             await session.commit()
 
-            extracted_pages = self.parser.parse(file_path)
+            with tempfile.TemporaryDirectory() as temp_dir:
+                file_path = Path(temp_dir) / f"source{document.file_type}"
+                with file_path.open("wb") as target:
+                    async for data in file_chunks(document.id):
+                        target.write(data)
+                extracted_pages = self.parser.parse(file_path)
             cleaned_pages = self.cleaner.clean_pages(extracted_pages)
 
             for page in cleaned_pages:
@@ -242,16 +300,13 @@ class DocumentService:
                 detail=f"Processing failed: {exc}",
             ) from exc
 
-    async def list_documents(self, session: AsyncSession, *, owner_user_id: str) -> list[Document]:
-        rows = await session.execute(
-            select(Document)
-            .where(Document.owner_user_id == owner_user_id)
-            .order_by(Document.uploaded_at.desc())
+    async def list_documents(self, session: MongoStore, *, owner_user_id: str) -> list[Document]:
+        return await session.find(
+            Document, {"owner_user_id": owner_user_id}, sort=[("uploaded_at", -1)]
         )
-        return rows.scalars().all()
 
     async def get_document(
-        self, session: AsyncSession, document_id: str, *, owner_user_id: str
+        self, session: MongoStore, document_id: str, *, owner_user_id: str
     ) -> Document:
         document = await session.get(Document, document_id)
         if document is None or document.owner_user_id != owner_user_id:

@@ -34,7 +34,7 @@
 
 ## Known limitations
 
-- Default DB is SQLite for zero-friction startup; PostgreSQL + pgvector migration is still pending
+- Runtime persistence uses MongoDB Atlas in the single csi.clauseguide_ai collection; the SQLite import tool is retained for migrating old exports
 - Optional RAGAS mode requires extra dependencies (`pip install -e '.[evaluation]'`)
 - Heuristic answer fallback is used when Groq API key is not configured
 - OCR for scanned PDFs is deferred to a future phase

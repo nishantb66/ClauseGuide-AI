@@ -1,13 +1,9 @@
 from __future__ import annotations
 
 import re
-from pathlib import Path
-
-import anyio
 import fitz
 from fastapi import HTTPException, status
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
+from app.core.mongo import MongoStore, has_file_chunk, read_file_bytes
 
 from app.models.clause import Clause, RiskFinding
 from app.models.document import Document, DocumentPage, DocumentStatus
@@ -25,7 +21,7 @@ class DocumentReviewService:
 
     async def get_review_workspace(
         self,
-        session: AsyncSession,
+        session: MongoStore,
         *,
         document_id: str,
         owner_user_id: str,
@@ -36,7 +32,7 @@ class DocumentReviewService:
         clause_map = {clause.id: clause for clause in clauses}
         page_map = {page.page_number: page for page in pages}
 
-        pdf_document = self._open_pdf(document)
+        pdf_document = await self._open_pdf(document)
         try:
             risks = [
                 self._build_review_risk(
@@ -66,7 +62,7 @@ class DocumentReviewService:
 
     async def get_important_points(
         self,
-        session: AsyncSession,
+        session: MongoStore,
         *,
         document_id: str,
         owner_user_id: str,
@@ -124,22 +120,21 @@ class DocumentReviewService:
 
     async def get_document_file(
         self,
-        session: AsyncSession,
+        session: MongoStore,
         *,
         document_id: str,
         owner_user_id: str,
-    ) -> tuple[Document, Path]:
+    ) -> Document:
         document = await self._load_document(
             session, document_id=document_id, owner_user_id=owner_user_id
         )
-        file_path = Path(document.file_path)
-        if not await anyio.Path(file_path).exists():
+        if not await has_file_chunk(document.id, 0):
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File not found")
-        return document, file_path
+        return document
 
     async def _load_review_data(
         self,
-        session: AsyncSession,
+        session: MongoStore,
         *,
         document_id: str,
         owner_user_id: str,
@@ -153,27 +148,21 @@ class DocumentReviewService:
                 detail="Document must be analysed before opening the review workspace.",
             )
 
-        page_rows = await session.execute(
-            select(DocumentPage)
-            .where(DocumentPage.document_id == document_id)
-            .order_by(DocumentPage.page_number.asc())
-        )
-        clause_rows = await session.execute(select(Clause).where(Clause.document_id == document_id))
-        finding_rows = await session.execute(
-            select(RiskFinding)
-            .where(RiskFinding.document_id == document_id)
-            .order_by(RiskFinding.risk_score.desc(), RiskFinding.id.asc())
+        pages = await session.find(DocumentPage, {"document_id": document_id}, sort=[("page_number", 1)])
+        clauses = await session.find(Clause, {"document_id": document_id})
+        findings = await session.find(
+            RiskFinding, {"document_id": document_id}, sort=[("risk_score", -1), ("id", 1)]
         )
         return (
             document,
-            list(page_rows.scalars().all()),
-            list(clause_rows.scalars().all()),
-            list(finding_rows.scalars().all()),
+            pages,
+            clauses,
+            findings,
         )
 
     async def _load_document(
         self,
-        session: AsyncSession,
+        session: MongoStore,
         *,
         document_id: str,
         owner_user_id: str,
@@ -363,13 +352,13 @@ class DocumentReviewService:
         return [self._compact(normalized, 520)]
 
     @staticmethod
-    def _open_pdf(document: Document) -> fitz.Document | None:
+    async def _open_pdf(document: Document) -> fitz.Document | None:
         if document.file_type != ".pdf":
             return None
-        file_path = Path(document.file_path)
-        if not file_path.exists():
+        content = await read_file_bytes(document.id)
+        if not content:
             return None
-        return fitz.open(file_path)
+        return fitz.open(stream=content, filetype="pdf")
 
     @staticmethod
     def _pdf_search_terms(statement: str) -> list[str]:

@@ -9,9 +9,7 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from fastapi import HTTPException, status
-from sqlalchemy import select, update
-from sqlalchemy.ext.asyncio import AsyncSession
-
+from app.core.mongo import MongoStore
 from app.core.security import (
     create_access_token,
     generate_otp,
@@ -30,7 +28,7 @@ class AuthService:
         self.email_service = EmailService()
 
     async def register(
-        self, session: AsyncSession, *, email: str, password: str, full_name: str | None
+        self, session: MongoStore, *, email: str, password: str, full_name: str | None
     ) -> User:
         normalized_email = self._normalize_email(email)
         existing = await self._user_by_email(session, normalized_email)
@@ -62,7 +60,7 @@ class AuthService:
         await session.refresh(user)
         return user
 
-    async def resend_otp(self, session: AsyncSession, *, email: str) -> None:
+    async def resend_otp(self, session: MongoStore, *, email: str) -> None:
         user = await self._user_by_email(session, self._normalize_email(email))
         if user is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Account not found")
@@ -74,7 +72,7 @@ class AuthService:
         await self._issue_signup_otp(session, user)
         await session.commit()
 
-    async def verify_otp(self, session: AsyncSession, *, email: str, otp: str) -> dict:
+    async def verify_otp(self, session: MongoStore, *, email: str, otp: str) -> dict:
         user = await self._user_by_email(session, self._normalize_email(email))
         if user is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Account not found")
@@ -105,7 +103,7 @@ class AuthService:
         await session.refresh(user)
         return self._auth_payload(user)
 
-    async def login(self, session: AsyncSession, *, email: str, password: str) -> dict:
+    async def login(self, session: MongoStore, *, email: str, password: str) -> dict:
         user = await self._user_by_email(session, self._normalize_email(email))
         if user is None or not verify_password(password, user.password_hash):
             raise HTTPException(
@@ -127,7 +125,7 @@ class AuthService:
 
     async def google_auth(
         self,
-        session: AsyncSession,
+        session: MongoStore,
         *,
         code: str | None,
         id_token: str | None,
@@ -197,12 +195,11 @@ class AuthService:
         await session.refresh(user)
         return self._auth_payload(user)
 
-    async def _issue_signup_otp(self, session: AsyncSession, user: User) -> None:
-        await session.execute(
-            update(EmailOTP)
-            .where(EmailOTP.user_id == user.id, EmailOTP.consumed_at.is_(None))
-            .values(consumed_at=datetime.now(UTC))
-        )
+    async def _issue_signup_otp(self, session: MongoStore, user: User) -> None:
+        for previous in await session.find(
+            EmailOTP, {"user_id": user.id, "consumed_at": None}
+        ):
+            previous.consumed_at = datetime.now(UTC)
         otp = generate_otp()
         session.add(
             EmailOTP(
@@ -214,23 +211,22 @@ class AuthService:
         )
         await asyncio.to_thread(self.email_service.send_otp, to_email=user.email, otp=otp)
 
-    async def _latest_active_otp(self, session: AsyncSession, user_id: str) -> EmailOTP | None:
-        rows = await session.execute(
-            select(EmailOTP)
-            .where(
-                EmailOTP.user_id == user_id,
-                EmailOTP.purpose == "signup",
-                EmailOTP.consumed_at.is_(None),
-                EmailOTP.expires_at > datetime.now(UTC),
-            )
-            .order_by(EmailOTP.created_at.desc())
-            .limit(1)
+    async def _latest_active_otp(self, session: MongoStore, user_id: str) -> EmailOTP | None:
+        rows = await session.find(
+            EmailOTP,
+            {
+                "user_id": user_id,
+                "purpose": "signup",
+                "consumed_at": None,
+                "expires_at": {"$gt": datetime.now(UTC)},
+            },
+            sort=[("created_at", -1)],
+            limit=1,
         )
-        return rows.scalar_one_or_none()
+        return rows[0] if rows else None
 
-    async def _user_by_email(self, session: AsyncSession, email: str) -> User | None:
-        rows = await session.execute(select(User).where(User.email == email))
-        return rows.scalar_one_or_none()
+    async def _user_by_email(self, session: MongoStore, email: str) -> User | None:
+        return await session.one(User, {"email": email})
 
     def _auth_payload(self, user: User) -> dict:
         token, expires_in = create_access_token(user.id, email=user.email)
