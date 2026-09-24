@@ -14,6 +14,9 @@ Part 1 through Part 5 are implemented:
 - Contract type detection
 - Clause extraction and classification pipeline (keyword + embedding signals)
 - Deterministic rule-based risk engine with clause-level findings
+- Document-type routing: property title reports use cited title-opinion,
+  encumbrance, litigation, auction-history, and approval checks rather than
+  the commercial-contract checklist
 - Clause explorer APIs and frontend integration
 - Advanced retrieval features (intent detection, query rewriting, clause-aware filtering, reranking, confidence scoring)
 - Contract Q&A with citation verification and legal disclaimer

@@ -51,7 +51,10 @@ class AnalysisService:
             for page in pages
         ]
         document_classification = self.document_classifier.classify(page_inputs)
-        party_roles = self.party_extractor.extract(full_text)
+        contract_type = document.contract_type or "unknown"
+        is_title_report = contract_type == "legal_title_report"
+        party_roles = [] if is_title_report else self.party_extractor.extract(full_text)
+        title_parties = self._title_report_parties(full_text) if is_title_report else []
 
         findings = await session.find(
             RiskFinding, {"document_id": document_id}, sort=[("risk_score", -1)]
@@ -62,18 +65,27 @@ class AnalysisService:
         missing_clauses = self._missing_clauses(document.contract_type or "unknown", clauses)
         review_clauses = self._review_clauses(document.contract_type or "unknown", clauses)
 
-        overall_risk_score = self._overall_score(unique_findings)
+        if is_title_report:
+            top_three = unique_findings[:3]
+            overall_risk_score = (
+                round(sum(f.risk_score for f in top_three) / len(top_three))
+                if top_three else 0
+            )
+        else:
+            overall_risk_score = self._overall_score(unique_findings)
         overall_risk_level = self._risk_level(overall_risk_score)
 
-        contract_type = document.contract_type or "unknown"
         top_risks: list[dict] = []
         verified_count = 0
         needs_review_count = 0
         for finding in unique_findings[:8]:
             clause = clause_map.get(finding.clause_id) if finding.clause_id else None
-            clause_type = (
-                clause.clause_type if clause else self._infer_clause_type_from_finding(finding)
-            )
+            if clause:
+                clause_type = clause.clause_type
+            elif is_title_report:
+                clause_type = finding.risk_category.removesuffix("_risk")
+            else:
+                clause_type = self._infer_clause_type_from_finding(finding)
             page = finding.page_number or (clause.page_start if clause else 1)
             verification = self.verifier.verify_risk_finding(
                 finding=finding,
@@ -108,6 +120,11 @@ class AnalysisService:
             contract_type, {}
         )
         present_clause_types = self._present_clause_types(clauses)
+        risk_summary = (
+            self._title_risk_summary(top_risks)
+            if is_title_report else
+            self._risk_summary(overall_risk_level, overall_risk_score, top_risks)
+        )
         return {
             "contract_type": contract_type,
             "contract_type_label": CONTRACT_TYPE_LABELS.get(
@@ -120,7 +137,7 @@ class AnalysisService:
                 ),
                 "likely_user_role": str(profile.get("likely_user_role", "Unknown")),
                 "stronger_party": str(profile.get("stronger_party", "Unknown")),
-                "detected_parties": [party.name for party in party_roles]
+                "detected_parties": title_parties or [party.name for party in party_roles]
                 or self._extract_parties(full_text),
                 "party_roles": [
                     {
@@ -154,20 +171,30 @@ class AnalysisService:
             },
             "overall_risk_level": overall_risk_level,
             "overall_risk_score": overall_risk_score,
-            "risk_summary": self._risk_summary(overall_risk_level, overall_risk_score, top_risks),
+            "risk_summary": risk_summary,
             "risk_counts": risk_counts,
             "missing_clauses": missing_clauses,
             "review_clauses": review_clauses,
-            "false_positive_checks": self._false_positive_checks(contract_type, clauses),
+            "false_positive_checks": (
+                self.kb.false_positive_guardrails(contract_type)
+                if is_title_report else self._false_positive_checks(contract_type, clauses)
+            ),
             "review_focus": self.kb.review_focus(contract_type),
-            "cuad_coverage": self._cuad_coverage(clauses),
+            "cuad_coverage": (
+                {"enabled": False} if is_title_report else self._cuad_coverage(clauses)
+            ),
             "jurisdiction_warnings": self.kb.jurisdiction_warnings(
                 contract_type=contract_type,
                 present_clause_types=present_clause_types,
                 full_text=full_text,
             ),
             "benchmark_notes": self.kb.benchmark_notes(contract_type),
-            "final_verdict": self._final_verdict(overall_risk_level, overall_risk_score, top_risks),
+            "final_verdict": (
+                "Review the cited title exceptions and obtain current supporting records; "
+                "this issue-spotting score is not a legal title opinion."
+                if is_title_report else
+                self._final_verdict(overall_risk_level, overall_risk_score, top_risks)
+            ),
             "verification_summary": {
                 "verified_count": verified_count,
                 "needs_review_count": needs_review_count,
@@ -186,9 +213,36 @@ class AnalysisService:
                         if finding.page_number is not None and int(finding.page_number) > 0
                     }
                 ),
-                "note": self._extraction_note(len(clauses), len(findings)),
+                "note": (
+                    "Title-report review uses cited property issues rather than contract clauses."
+                    if is_title_report else self._extraction_note(len(clauses), len(findings))
+                ),
             },
         }
+
+    @staticmethod
+    def _title_report_parties(full_text: str) -> list[str]:
+        opening = " ".join(full_text[:6000].split())
+        match = re.search(
+            r"on request of\s+(.{3,120}?(?:Pvt\.?\s*Ltd\.?|Private Limited|LLP|Limited))",
+            opening,
+            re.IGNORECASE,
+        )
+        return [match.group(1).strip(" ,.")] if match else []
+
+    @staticmethod
+    def _title_risk_summary(top_risks: list[dict]) -> str:
+        if not top_risks:
+            return (
+                "No title-specific issue matched the current rules. This does not establish "
+                "clear title; review the full report and current records."
+            )
+        pages = ", ".join(str(risk["page"]) for risk in top_risks[:3])
+        return (
+            "This title report contains matters requiring review, including "
+            f"{'; '.join(risk['summary'].rstrip('.') for risk in top_risks[:3])}. "
+            f"See source pages {pages}."
+        )
 
     def _cuad_coverage(self, clauses: list[Clause]) -> dict:
         metadata = self.kb.cuad_metadata()

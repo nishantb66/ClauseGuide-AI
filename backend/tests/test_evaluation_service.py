@@ -44,6 +44,10 @@ def test_score_case_unsupported_refusal() -> None:
     assert row.unsupported_refusal_score == 1.0
     assert row.context_precision_score == 0.0
 
+    answer["answer"] = "I could not find this information in the document."
+    row = service._score_case(case=case, answer=answer, risk_level_by_clause={})
+    assert row.unsupported_refusal_score == 1.0
+
 
 def test_extract_ragas_summary_from_dict() -> None:
     service = EvaluationService()

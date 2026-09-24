@@ -26,6 +26,13 @@ class VerificationService:
         "security_deposit_risk",
         "other",
     }
+    title_report_categories = {
+        "project_finance_charge_risk",
+        "qualified_title_opinion_risk",
+        "pending_litigation_risk",
+        "auction_encumbrance_risk",
+        "approval_conditions_risk",
+    }
 
     def __init__(self, kb: LegalKnowledgeBase | None = None) -> None:
         self.kb = kb or get_legal_kb()
@@ -57,7 +64,10 @@ class VerificationService:
         total_pages: int | None,
         confidence_label: str,
     ) -> dict:
-        unsupported = answer.strip().lower() == "i could not find this information in the contract."
+        unsupported = answer.strip().lower() in {
+            "i could not find this information in the document.",
+            "i could not find this information in the contract.",
+        }
         if unsupported:
             checks = [
                 VerificationCheckResult(
@@ -155,6 +165,12 @@ class VerificationService:
         clause: Clause | None,
         contract_type: str,
     ) -> VerificationCheckResult:
+        if contract_type == "legal_title_report" and finding.risk_category in self.title_report_categories:
+            return VerificationCheckResult(
+                check="rule_alignment",
+                passed=True,
+                detail="Finding matches the title-report issue profile.",
+            )
         expected = set(self.kb.expected_clauses(contract_type))
         recommended = set(self.kb.recommended_clauses(contract_type))
 

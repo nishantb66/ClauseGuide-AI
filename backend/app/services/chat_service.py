@@ -60,6 +60,7 @@ class ChatService:
             question=question,
             session_id=chat_session.id,
             total_pages=document.total_pages,
+            document_type=document.contract_type,
         )
 
         await self._persist_messages(
@@ -88,6 +89,7 @@ class ChatService:
             question=question,
             session_id=None,
             total_pages=document.total_pages,
+            document_type=document.contract_type,
         )
 
     async def _answer_pipeline(
@@ -98,6 +100,7 @@ class ChatService:
         question: str,
         session_id: str | None,
         total_pages: int | None,
+        document_type: str | None,
     ) -> dict:
         intent_result = self.intent_detector.detect(question)
         if intent_result.intent == "document_overview":
@@ -160,6 +163,7 @@ class ChatService:
             self.llm.answer_contract_question,
             question=question,
             context_items=context_items,
+            document_type=document_type,
         )
         sources = result.get("sources", [])
 
@@ -242,7 +246,7 @@ class ChatService:
         retrieved_context: list[str],
     ) -> dict:
         return {
-            "answer": "I could not find this information in the contract.",
+            "answer": "I could not find this information in the document.",
             "confidence_score": 0.32,
             "confidence_label": "not_enough_evidence",
             "sources": [],
@@ -294,6 +298,7 @@ class ChatService:
 
         clause_labels = self._top_clause_labels(clauses)
         risk_sentence = self._overview_risk_sentence(findings)
+        is_title_report = document.contract_type == "legal_title_report"
         first_page = next((page for page in pages if page.cleaned_text.strip()), None)
         source_text = self._snippet(first_page.cleaned_text if first_page else document.file_name, 280)
 
@@ -310,13 +315,17 @@ class ChatService:
         if review_focus:
             answer_parts.append(f"For this document type, I focus on {', '.join(review_focus[:5])}.")
         cuad_metadata = self.kb.cuad_metadata()
-        if cuad_metadata:
+        if cuad_metadata and not is_title_report:
             answer_parts.append(
                 "Clause detection is supported by the local CUAD knowledge base "
                 f"({cuad_metadata.get('contract_count', 0)} contracts, "
                 f"{cuad_metadata.get('cuad_label_count', 0)} expert clause labels)."
             )
-        answer_parts.append("I can also answer specific questions about payment, notice, termination, deposits, liability, or missing clauses.")
+        answer_parts.append(
+            "I can also answer questions about the cited title exceptions, charges, litigation, sale history, and approvals."
+            if is_title_report else
+            "I can also answer specific questions about payment, notice, termination, deposits, liability, or missing clauses."
+        )
 
         sources = [
             {
@@ -333,11 +342,18 @@ class ChatService:
                     "evidence": self._snippet(clause.clause_text, 240),
                 }
             )
+        if is_title_report:
+            for finding in findings[:2]:
+                sources.append({
+                    "page": finding.page_number,
+                    "clause_type": finding.risk_category.removesuffix("_risk"),
+                    "evidence": self._snippet(finding.evidence_text, 240),
+                })
 
         return {
             "answer": " ".join(answer_parts),
-            "confidence_score": 0.74 if clauses else 0.52,
-            "confidence_label": "medium" if clauses else "low",
+            "confidence_score": 0.74 if clauses or (is_title_report and findings) else 0.52,
+            "confidence_label": "medium" if clauses or (is_title_report and findings) else "low",
             "sources": sources[:3],
             "disclaimer": "This is not legal advice.",
             "intent": "document_overview",
