@@ -477,6 +477,7 @@ CONTRACT_TYPE_LABELS: dict[str, str] = {
     "partnership_agreement": "Partnership Agreement",
     "internship_agreement": "Internship Agreement",
     "legal_template_collection": "Legal Template Collection",
+    "legal_title_report": "Legal Title / Title Clearance Report",
 }
 
 DOCUMENT_ANALYSIS_PROFILES: dict[str, dict[str, object]] = {

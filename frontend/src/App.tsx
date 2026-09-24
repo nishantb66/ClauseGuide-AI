@@ -113,7 +113,8 @@ function formatDate(value: string | null | undefined): string {
   });
 }
 
-function riskCopy(level: string): string {
+function riskCopy(level: string, isTitleReport = false): string {
+  if (isTitleReport) return "Review cited title exceptions and current records.";
   if (level === "critical") return "Do not sign before review.";
   if (level === "high") return "Review carefully before signing.";
   if (level === "medium") return "Some terms need attention.";
@@ -166,6 +167,7 @@ function App() {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [activeView, setActiveView] = useState<WorkspaceView>("risks");
+  const isTitleReport = analysis?.contract_type === "legal_title_report";
   const [isRailCollapsed, setIsRailCollapsed] = useState(() => {
     return localStorage.getItem("clauseguide_rail_collapsed") === "true";
   });
@@ -194,11 +196,11 @@ function App() {
       { id: "risks" as const, label: "Risks", count: analysis?.extraction_health.risks_found },
       { id: "review" as const, label: "Review", count: analysis?.extraction_health.risks_found },
       { id: "markdown" as const, label: "Markdown", count: undefined },
-      { id: "clauses" as const, label: "Clauses", count: analysis?.extraction_health.clauses_found },
+      ...(!isTitleReport ? [{ id: "clauses" as const, label: "Clauses", count: analysis?.extraction_health.clauses_found }] : []),
       { id: "chat" as const, label: "Chat", count: chatHistory.length || undefined },
       { id: "reports" as const, label: "Reports", count: reports.length || undefined },
     ],
-    [analysis, chatHistory.length, reports.length]
+    [analysis, isTitleReport, chatHistory.length, reports.length]
   );
 
   function setRailCollapsed(collapsed: boolean) {
@@ -293,6 +295,7 @@ function App() {
         refreshEvaluations(documentId),
       ]);
       setAnalysis(analysisResult);
+      if (analysisResult.contract_type === "legal_title_report") setActiveView("risks");
     } catch (err) {
       handleError(err, "Failed to load analysis");
     } finally {
@@ -1312,6 +1315,7 @@ function DocumentWorkspace(props: {
     viewItems,
     chatHistory,
   } = props;
+  const isTitleReport = analysis?.contract_type === "legal_title_report";
 
   return (
     <>
@@ -1329,8 +1333,8 @@ function DocumentWorkspace(props: {
           </p>
           {analysis ? (
             <div className="meta-chips">
-              <span>{analysis.document_classification?.is_template ? "Template/sample" : "Agreement review"}</span>
-              <span>{analysis.extraction_health.clauses_found} clauses read</span>
+              <span>{isTitleReport ? "Title investigation" : analysis.document_classification?.is_template ? "Template/sample" : "Agreement review"}</span>
+              {!isTitleReport ? <span>{analysis.extraction_health.clauses_found} clauses read</span> : null}
               <span>{analysis.extraction_health.risks_found} findings</span>
               <span>{sourcePages(analysis)}</span>
             </div>
@@ -1341,7 +1345,7 @@ function DocumentWorkspace(props: {
           <div className={`score-tile ${riskTone(analysis.overall_risk_level)}`}>
             <span>{analysis.overall_risk_score}</span>
             <strong>{prettyLabel(analysis.overall_risk_level)}</strong>
-            <small>{riskCopy(analysis.overall_risk_level)}</small>
+            <small>{riskCopy(analysis.overall_risk_level, isTitleReport)}</small>
           </div>
         ) : (
           <button type="button" className="portal-cta" disabled={busy || !selectedDocumentId} onClick={() => void onProcessDocument()}>
@@ -1353,7 +1357,7 @@ function DocumentWorkspace(props: {
       {analysis ? (
         <div className="decision-strip">
           <div><span>Risk findings</span><strong>{analysis.extraction_health.risks_found}</strong></div>
-          <div><span>Clauses read</span><strong>{analysis.extraction_health.clauses_found}</strong></div>
+          {!isTitleReport ? <div><span>Clauses read</span><strong>{analysis.extraction_health.clauses_found}</strong></div> : null}
           <div><span>Evidence pages</span><strong>{sourcePages(analysis)}</strong></div>
           <div>
             <span>Verification coverage</span>
@@ -1382,7 +1386,7 @@ function DocumentWorkspace(props: {
         <MarkdownNotesView documentId={selectedDocumentId} embedded />
       ) : null}
       {activeView === "clauses" ? <ClausesView clauses={clauses} selectedClauseDetail={selectedClauseDetail} onSelectClause={onSelectClause} /> : null}
-      {activeView === "chat" ? <ChatView busy={busy} selectedDocumentId={selectedDocumentId} question={question} setQuestion={setQuestion} onAsk={onAsk} chatHistory={chatHistory} /> : null}
+      {activeView === "chat" ? <ChatView busy={busy} selectedDocumentId={selectedDocumentId} question={question} setQuestion={setQuestion} onAsk={onAsk} chatHistory={chatHistory} isTitleReport={isTitleReport} /> : null}
       {activeView === "reports" ? <ReportsView busy={busy} selectedDocumentId={selectedDocumentId} reports={reports} latestEvaluation={latestEvaluation} evaluationRuns={evaluationRuns} useRagasEval={useRagasEval} setUseRagasEval={setUseRagasEval} onGenerateReport={onGenerateReport} onRunEvaluation={onRunEvaluation} onDownloadReport={onDownloadReport} /> : null}
     </>
   );
@@ -2194,19 +2198,22 @@ function ClausesView({ clauses, selectedClauseDetail, onSelectClause }: { clause
   );
 }
 
-function ChatView(props: { busy: boolean; selectedDocumentId: string; question: string; setQuestion: (value: string) => void; onAsk: () => void; chatHistory: ChatResponse[] }) {
+function ChatView(props: { busy: boolean; selectedDocumentId: string; question: string; setQuestion: (value: string) => void; onAsk: () => void; chatHistory: ChatResponse[]; isTitleReport: boolean }) {
   return (
     <section className="chat-view">
       <div className="assistant-intro">
-        <div><p className="eyebrow">Ask ClauseGuide</p><h3>Ask practical questions about this document.</h3><p>Answers use retrieved clauses and source evidence from the uploaded file.</p></div>
+        <div><p className="eyebrow">Ask ClauseGuide</p><h3>Ask practical questions about this document.</h3><p>Answers use source evidence from the uploaded file.</p></div>
         <div className="prompt-row">
-          {["Summarise this document for me.", "What are the top risks before signing?", "Which clauses need negotiation?"].map((prompt) => (
+          {(props.isTitleReport
+            ? ["Summarise this title report for me.", "What encumbrances are listed?", "What is the reported litigation status?"]
+            : ["Summarise this document for me.", "What are the top risks before signing?", "Which clauses need negotiation?"]
+          ).map((prompt) => (
             <button key={prompt} type="button" onClick={() => props.setQuestion(prompt)}>{prompt}</button>
           ))}
         </div>
       </div>
       <div className="question-box">
-        <textarea value={props.question} onChange={(event) => props.setQuestion(event.target.value)} placeholder="Ask about risk, payment, termination, penalties, missing clauses, or any term in this document." />
+        <textarea value={props.question} onChange={(event) => props.setQuestion(event.target.value)} placeholder={props.isTitleReport ? "Ask about title exceptions, encumbrances, litigation, or approvals." : "Ask about risk, payment, termination, penalties, missing clauses, or any term in this document."} />
         <button type="button" disabled={props.busy || !props.selectedDocumentId || !props.question.trim()} onClick={() => props.onAsk()}>Ask ClauseGuide</button>
       </div>
       <div className="chat-list">

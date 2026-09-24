@@ -172,15 +172,18 @@ class ReportService:
     ) -> dict:
         generated_at = datetime.now(UTC).isoformat().replace("+00:00", "Z")
         top_risks = analysis.get("top_risks", [])[:5]
+        is_title_report = analysis.get("contract_type") == "legal_title_report"
 
-        obligations = self._extract_obligations(clauses)
-        highlights = self._extract_amounts_timelines(clauses)
+        obligations = [] if is_title_report else self._extract_obligations(clauses)
+        highlights = [] if is_title_report else self._extract_amounts_timelines(clauses)
         questions = self._build_questions(
-            top_risks=top_risks, missing_clauses=analysis.get("missing_clauses", [])
+            top_risks=top_risks, missing_clauses=analysis.get("missing_clauses", []),
+            is_title_report=is_title_report,
         )
 
         confidence = self._report_confidence(
-            clauses=clauses, findings=findings, top_risks=top_risks
+            clauses=clauses, findings=findings, top_risks=top_risks,
+            is_title_report=is_title_report,
         )
         summary_text = self._build_summary_text(analysis=analysis, top_risks=top_risks)
 
@@ -195,7 +198,7 @@ class ReportService:
         return {
             "generated_at": generated_at,
             "disclaimer": (
-                "This is an AI contract analysis assistant output and not legal advice. "
+                "This is automated legal-document issue spotting, not a title opinion or legal advice. "
                 "Consult a qualified lawyer before making legal decisions."
             ),
             "document": {
@@ -203,6 +206,7 @@ class ReportService:
                 "title": document.title,
                 "file_name": document.file_name,
                 "contract_type": analysis.get("contract_type", "unknown"),
+                "contract_type_label": analysis.get("contract_type_label"),
                 "total_pages": document.total_pages,
             },
             "analysis": {
@@ -237,6 +241,7 @@ class ReportService:
     def _render_markdown(self, payload: dict) -> str:
         doc = payload["document"]
         analysis = payload["analysis"]
+        is_title_report = doc["contract_type"] == "legal_title_report"
 
         lines: list[str] = []
         lines.append("# ClauseGuide AI Risk Report")
@@ -246,13 +251,16 @@ class ReportService:
         lines.append("## Disclaimer")
         lines.append(payload["disclaimer"])
         lines.append("")
-        lines.append("## Contract Snapshot")
+        lines.append("## Document Snapshot" if is_title_report else "## Contract Snapshot")
         lines.append(f"- Document: {doc['title']}")
         lines.append(f"- File Name: {doc['file_name']}")
-        lines.append(f"- Contract Type: {self._pretty_label(doc['contract_type'])}")
+        lines.append(
+            f"- Document Type: {doc.get('contract_type_label') or self._pretty_label(doc['contract_type'])}"
+        )
         lines.append(f"- Total Pages: {doc['total_pages']}")
-        lines.append(f"- Overall Risk Score: {analysis['overall_risk_score']}")
-        lines.append(f"- Overall Risk Level: {analysis['overall_risk_level']}")
+        score_label = "Review Priority" if is_title_report else "Overall Risk"
+        lines.append(f"- {score_label} Score: {analysis['overall_risk_score']}")
+        lines.append(f"- {score_label} Level: {analysis['overall_risk_level']}")
         lines.append("")
         lines.append("## Executive Summary")
         lines.append(analysis["summary"])
@@ -372,7 +380,7 @@ class ReportService:
                 lines.append(f"- {check}")
             lines.append("")
 
-        lines.append("## Top Risky Clauses")
+        lines.append("## Title Matters Requiring Review" if is_title_report else "## Top Risky Clauses")
         if payload["top_risks"]:
             for index, risk in enumerate(payload["top_risks"], start=1):
                 lines.append(
@@ -383,49 +391,57 @@ class ReportService:
                 lines.append(f"- Plain English: {risk.get('plain_language') or risk['why_risky']}")
                 lines.append(f"- Why Risky: {risk['why_risky']}")
                 lines.append(f"- Suggested Question: {risk['suggested_question']}")
+                if is_title_report and risk.get("evidence"):
+                    lines.append(f"- Evidence: {self._normalize_spaces(str(risk['evidence']))[:700]}")
                 lines.append(f"- Source: Page {risk['page']}")
                 lines.append("")
         else:
             lines.append("- No major high-confidence risks were identified in this phase.")
             lines.append("")
 
-        lines.append("## Important Obligations")
-        if payload["important_obligations"]:
-            for item in payload["important_obligations"]:
-                lines.append(
-                    f"- {self._pretty_label(item['clause_type'])} (Page {item['page']}): {item['obligation']}"
-                )
-        else:
-            lines.append("- No obligation highlights were extracted.")
-        lines.append("")
+        if not is_title_report:
+            lines.append("## Important Obligations")
+            if payload["important_obligations"]:
+                for item in payload["important_obligations"]:
+                    lines.append(
+                        f"- {self._pretty_label(item['clause_type'])} (Page {item['page']}): {item['obligation']}"
+                    )
+            else:
+                lines.append("- No obligation highlights were extracted.")
+            lines.append("")
 
-        lines.append("## Important Amounts and Timelines")
-        if payload["important_amounts_and_timelines"]:
-            for item in payload["important_amounts_and_timelines"]:
-                lines.append(
-                    f"- {self._pretty_label(item['kind'])}: {item['value']} (Page {item['page']})"
-                )
-        else:
-            lines.append("- No explicit amounts or timelines were detected.")
-        lines.append("")
+            lines.append("## Important Amounts and Timelines")
+            if payload["important_amounts_and_timelines"]:
+                for item in payload["important_amounts_and_timelines"]:
+                    lines.append(
+                        f"- {self._pretty_label(item['kind'])}: {item['value']} (Page {item['page']})"
+                    )
+            else:
+                lines.append("- No explicit amounts or timelines were detected.")
+            lines.append("")
 
-        lines.append("## Questions to Ask Before Signing")
+        lines.append("## Questions for Title Review" if is_title_report else "## Questions to Ask Before Signing")
         for question in payload["questions_to_ask"]:
             lines.append(f"- {question}")
         lines.append("")
 
-        lines.append("## AI Confidence")
-        lines.append(
-            f"- Confidence Score: {payload['confidence']['score']:.2f} "
-            f"({payload['confidence']['label']})"
-        )
-        lines.append(
-            "- Confidence is based on extraction confidence, risk-finding confidence, and source coverage."
-        )
+        if is_title_report:
+            lines.append("## Evidence Coverage")
+            lines.append(f"- Cited findings: {len(payload['top_risks'])}")
+            lines.append("- The checks spot cited issues; they do not establish legal correctness or current title status.")
+        else:
+            lines.append("## AI Confidence")
+            lines.append(
+                f"- Confidence Score: {payload['confidence']['score']:.2f} "
+                f"({payload['confidence']['label']})"
+            )
+            lines.append(
+                "- Confidence is based on extraction confidence, risk-finding confidence, and source coverage."
+            )
         lines.append("")
 
         lines.append("## Sources")
-        lines.append(f"- Contract file: {payload['sources']['document_file']}")
+        lines.append(f"- Source document: {payload['sources']['document_file']}")
         risk_pages = payload["sources"].get("risk_pages", [])
         if risk_pages:
             lines.append(f"- Referenced pages: {', '.join(str(page) for page in risk_pages)}")
@@ -483,7 +499,10 @@ class ReportService:
 
         return highlights
 
-    def _build_questions(self, *, top_risks: list[dict], missing_clauses: list[str]) -> list[str]:
+    def _build_questions(
+        self, *, top_risks: list[dict], missing_clauses: list[str],
+        is_title_report: bool = False,
+    ) -> list[str]:
         questions: list[str] = []
         seen: set[str] = set()
 
@@ -510,11 +529,16 @@ class ReportService:
                 break
 
         if not questions:
-            questions.append("Can we review this contract with legal counsel before signing?")
+            questions.append(
+                "Can counsel verify the current title search, encumbrances, and litigation status?"
+                if is_title_report else
+                "Can we review this contract with legal counsel before signing?"
+            )
         return questions
 
     def _report_confidence(
-        self, *, clauses: list[Clause], findings: list[RiskFinding], top_risks: list[dict]
+        self, *, clauses: list[Clause], findings: list[RiskFinding], top_risks: list[dict],
+        is_title_report: bool = False,
     ) -> dict:
         clause_conf = sum(clause.confidence_score for clause in clauses) / max(1, len(clauses))
         finding_conf = sum(finding.confidence_score for finding in findings) / max(1, len(findings))
@@ -523,7 +547,11 @@ class ReportService:
         )
         source_conf = citation_coverage / max(1, len(top_risks)) if top_risks else 0.5
 
-        score = (0.45 * clause_conf) + (0.45 * finding_conf) + (0.10 * source_conf)
+        score = (
+            0.70 * finding_conf + 0.30 * source_conf
+            if is_title_report else
+            0.45 * clause_conf + 0.45 * finding_conf + 0.10 * source_conf
+        )
         score = max(0.0, min(1.0, round(score, 4)))
 
         if score >= 0.80:

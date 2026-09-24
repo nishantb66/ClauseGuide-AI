@@ -1,0 +1,22 @@
+{
+  "document_type": "legal_title_report",
+  "display_name": "Legal Title / Title Clearance Report",
+  "purpose": "An advocate's investigation and opinion on ownership and title to identified immovable property.",
+  "likely_user_role": "property purchaser, lender, developer, or due-diligence reviewer",
+  "stronger_party": "not applicable; this is a legal opinion, not a negotiated agreement",
+  "expected_clauses": [],
+  "recommended_clauses": [],
+  "review_focus": [
+    "title opinion and its exceptions",
+    "current encumbrances and project-finance charges",
+    "pending litigation",
+    "mortgage and auction sale history",
+    "land-use and layout approval conditions",
+    "current search and discharge evidence"
+  ],
+  "false_positive_guardrails": [
+    "Referenced deeds, loans and permissions are title-chain evidence, not separate agreements to score.",
+    "Do not apply payment, termination or missing-contract-clause rules to a title report.",
+    "A historical mortgage is not automatically a current charge; verify its discharge separately."
+  ]
+}

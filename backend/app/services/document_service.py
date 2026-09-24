@@ -23,6 +23,7 @@ from app.services.embedding_service import EmbeddingService
 from app.services.placeholder_detector import PlaceholderDetector
 from app.services.risk_engine import ClauseRiskInput, RiskEngine
 from app.services.text_cleaner import TextCleaner
+from app.services.title_report_analyzer import TitleReportAnalyzer
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +39,7 @@ class DocumentService:
         self.clause_extractor = ClauseExtractor(self.embedding_service)
         self.placeholder_detector = PlaceholderDetector()
         self.risk_engine = RiskEngine()
+        self.title_report_analyzer = TitleReportAnalyzer()
 
     async def upload_document(
         self, session: MongoStore, upload: UploadFile, *, owner_user_id: str
@@ -207,7 +209,8 @@ class DocumentService:
                     )
                 )
 
-            clause_drafts = self.clause_extractor.extract(chunks)
+            is_title_report = document.contract_type == "legal_title_report"
+            clause_drafts = [] if is_title_report else self.clause_extractor.extract(chunks)
             clause_rows: list[Clause] = []
             for clause_draft in clause_drafts:
                 clause_row = Clause(
@@ -236,10 +239,14 @@ class DocumentService:
                 )
                 for clause in clause_rows
             ]
-            risk_analysis = self.risk_engine.analyze(
-                document.contract_type or "unknown",
-                risk_inputs,
-                document_confidence=document_classification.confidence_score,
+            risk_analysis = (
+                self.title_report_analyzer.analyze(cleaned_pages)
+                if is_title_report
+                else self.risk_engine.analyze(
+                    document.contract_type or "unknown",
+                    risk_inputs,
+                    document_confidence=document_classification.confidence_score,
+                )
             )
 
             for finding in risk_analysis.findings:
@@ -259,8 +266,10 @@ class DocumentService:
                     )
                 )
 
-            placeholder_issues = self.placeholder_detector.detect_pages(
-                [(page.page_number, page.cleaned_text) for page in cleaned_pages]
+            placeholder_issues = (
+                [] if is_title_report else self.placeholder_detector.detect_pages(
+                    [(page.page_number, page.cleaned_text) for page in cleaned_pages]
+                )
             )
             for issue in placeholder_issues:
                 score = 38 if issue.severity == "medium" else 18

@@ -37,6 +37,15 @@ class PlaceholderDetector:
         issues: list[PlaceholderIssue] = []
         for page_number, text in pages:
             for match in self.blank_re.finditer(text):
+                blank_start = match.start("blank")
+                line_end = text.find("\n", match.end("blank"))
+                line = text[
+                    text.rfind("\n", 0, blank_start) + 1:
+                    line_end if line_end >= 0 else len(text)
+                ]
+                if re.fullmatch(r"[_\s-]{10,}", line):
+                    # Letterhead dividers and signature rules are not fields.
+                    continue
                 start = max(0, match.start() - 80)
                 end = min(len(text), match.end() + 100)
                 evidence = " ".join(text[start:end].split())

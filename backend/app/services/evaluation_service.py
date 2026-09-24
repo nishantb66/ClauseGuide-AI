@@ -46,6 +46,7 @@ class EvaluationService:
     token_re = re.compile(r"\w+")
 
     unsupported_text = "i could not find this information in the contract."
+    unsupported_document_text = "i could not find this information in the document."
 
     def __init__(self, chat_service: ChatService | None = None) -> None:
         self.settings = get_settings()
@@ -529,7 +530,9 @@ class EvaluationService:
             return 0.0
 
         overlap = len(question_tokens & answer_tokens) / len(question_tokens)
-        fallback_penalty = 0.35 if self._normalize(actual_answer) == self.unsupported_text else 0.0
+        fallback_penalty = 0.35 if self._normalize(actual_answer) in {
+            self.unsupported_text, self.unsupported_document_text
+        } else 0.0
         score = max(0.0, overlap - fallback_penalty)
         return round(self._clip(score), 4)
 
@@ -618,7 +621,9 @@ class EvaluationService:
     def _unsupported_refusal(self, expected_answer: str | None, actual_answer: str) -> float:
         if expected_answer:
             return 1.0
-        return 1.0 if self._normalize(actual_answer) == self.unsupported_text else 0.0
+        return 1.0 if self._normalize(actual_answer) in {
+            self.unsupported_text, self.unsupported_document_text
+        } else 0.0
 
     def _extract_amounts(self, text: str) -> set[str]:
         return {match.group(1).replace(",", "") for match in self.amount_re.finditer(text)}

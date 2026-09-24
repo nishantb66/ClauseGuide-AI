@@ -68,6 +68,29 @@ class DocumentClassifier:
 
     def classify(self, pages: list[CleanedPage]) -> DocumentClassification:
         full_text = "\n\n".join(page.cleaned_text for page in pages if page.cleaned_text)
+        # A title investigation cites deeds, loans and permissions as evidence.
+        # Classify the document before counting those references as agreements.
+        opening = "\n".join(
+            page.cleaned_text for page in pages[:2] if page.cleaned_text
+        ).lower()
+        title_heading = re.search(
+            r"(?m)^[ \t]*(?:legal title report|title clearance report|"
+            r"title investigation report|title search report)[ \t]*$", opening
+        )
+        property_context = re.search(
+            r"\b(?:property|land|survey|hissa|gat\s+no\.?|plot\s+no\.?)\b",
+            opening,
+        )
+        if title_heading and property_context:
+            return DocumentClassification(
+                primary_document_type="legal_title_report",
+                secondary_document_types=[],
+                is_template=False,
+                is_executed_agreement=False,
+                is_collection_or_handbook=False,
+                contains_multiple_document_types=False,
+                confidence_score=0.96,
+            )
         primary = self.detector.detect(full_text)
         page_results = [
             (page.page_number, self.detector.detect(page.cleaned_text))

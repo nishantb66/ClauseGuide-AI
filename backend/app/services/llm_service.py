@@ -28,10 +28,13 @@ class LLMService:
             self._client = OpenAI(base_url=self.settings.groq_base_url, api_key=self.settings.groq_api_key)
         return self._client
 
-    def answer_contract_question(self, *, question: str, context_items: list[dict[str, Any]]) -> dict[str, Any]:
+    def answer_contract_question(
+        self, *, question: str, context_items: list[dict[str, Any]],
+        document_type: str | None = None,
+    ) -> dict[str, Any]:
         if not context_items:
             return {
-                "answer": "I could not find this information in the contract.",
+                "answer": "I could not find this information in the document.",
                 "confidence_score": 0.25,
                 "sources": [],
                 "disclaimer": "This is not legal advice.",
@@ -40,7 +43,9 @@ class LLMService:
         if not self.settings.groq_api_key:
             return self._heuristic_answer(question=question, context_items=context_items)
 
-        prompt = self._build_prompt(question=question, context_items=context_items)
+        prompt = self._build_prompt(
+            question=question, context_items=context_items, document_type=document_type
+        )
 
         max_attempts = max(1, self.settings.llm_max_retries + 1)
         for attempt in range(max_attempts):
@@ -54,10 +59,10 @@ class LLMService:
                         {
                             "role": "system",
                             "content": (
-                                "You are ClauseGuide AI, a contract analysis assistant. "
+                                "You are ClauseGuide AI, a legal-document analysis assistant. "
                                 "Answer ONLY from provided context. Never provide legal advice. "
                                 "If evidence is weak or missing, answer exactly: "
-                                "'I could not find this information in the contract.' "
+                                "'I could not find this information in the document.' "
                                 "Every source evidence snippet must be verbatim from the context."
                             ),
                         },
@@ -79,7 +84,10 @@ class LLMService:
 
         return self._heuristic_answer(question=question, context_items=context_items)
 
-    def _build_prompt(self, *, question: str, context_items: list[dict[str, Any]]) -> str:
+    def _build_prompt(
+        self, *, question: str, context_items: list[dict[str, Any]],
+        document_type: str | None = None,
+    ) -> str:
         context_lines: list[str] = []
         max_chunks = max(1, self.settings.llm_max_context_chunks)
         max_chars = max(400, self.settings.llm_context_chunk_chars)
@@ -90,7 +98,13 @@ class LLMService:
                 f"{chunk_text}"
             )
 
+        title_guidance = (
+            "Document type: property title report. Distinguish current charges from "
+            "historical mortgages; do not infer a case outcome or discharge without evidence.\n\n"
+            if document_type == "legal_title_report" else ""
+        )
         return (
+            title_guidance +
             "Return strict JSON:\n"
             "{\n"
             '  "answer": "...",\n'
@@ -118,7 +132,7 @@ class LLMService:
         return normalized[: max_chars - 3].rstrip() + "..."
 
     def _normalize_response(self, parsed: dict[str, Any]) -> dict[str, Any]:
-        answer = str(parsed.get("answer") or "").strip() or "I could not find this information in the contract."
+        answer = str(parsed.get("answer") or "").strip() or "I could not find this information in the document."
         sources = parsed.get("sources")
         if not isinstance(sources, list):
             sources = []
@@ -177,7 +191,7 @@ class LLMService:
 
         if not answer or answer.lower().startswith("i could not find"):
             return {
-                "answer": "I could not find this information in the contract.",
+                "answer": "I could not find this information in the document.",
                 "confidence_score": 0.32,
                 "sources": [],
                 "disclaimer": "This is not legal advice.",
@@ -215,18 +229,18 @@ class LLMService:
     def _extract_notice_answer(text: str) -> str:
         match = re.search(r"\b(\d{1,3})\s*(day|days|month|months)\b", text, flags=re.IGNORECASE)
         if not match:
-            return "I could not find this information in the contract."
+            return "I could not find this information in the document."
         return f"The notice period is {match.group(1)} {match.group(2).lower()}."
 
     @staticmethod
     def _extract_amount_answer(text: str) -> str:
         amount = re.search(r"(?:₹|inr|rs\.?)\s*([0-9][0-9,]*(?:\.[0-9]+)?)", text, flags=re.IGNORECASE)
         if amount:
-            return f"The contract mentions an amount of INR {amount.group(1)}."
+            return f"The document mentions an amount of INR {amount.group(1)}."
         numeric = re.search(r"\b([0-9][0-9,]{4,})\b", text)
         if numeric:
-            return f"The contract mentions an amount of {numeric.group(1)}."
-        return "I could not find this information in the contract."
+            return f"The document mentions an amount of {numeric.group(1)}."
+        return "I could not find this information in the document."
 
     @staticmethod
     def _extract_termination_answer(text: str) -> str:
@@ -236,11 +250,11 @@ class LLMService:
             lowered = sentence.lower()
             if "terminat" in lowered or "resign" in lowered or "notice" in lowered:
                 return sentence[:260]
-        return "I could not find this information in the contract."
+        return "I could not find this information in the document."
 
     @staticmethod
     def _extract_general_answer(text: str) -> str:
         cleaned = " ".join(text.split()).strip()
         if not cleaned:
-            return "I could not find this information in the contract."
-        return f"Based on the contract, {cleaned[:220]}"
+            return "I could not find this information in the document."
+        return f"Based on the document, {cleaned[:220]}"

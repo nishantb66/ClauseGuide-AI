@@ -63,3 +63,37 @@ def test_report_payload_and_render() -> None:
     assert "ClauseGuide AI Risk Report" in markdown
     assert "Top Risky Clauses" in markdown
     assert "Questions to Ask Before Signing" in markdown
+
+
+def test_title_report_uses_title_review_language() -> None:
+    service = ReportService()
+    document = SimpleNamespace(
+        id="title_1", title="Title clearance report", file_name="title.pdf", total_pages=40
+    )
+    analysis = {
+        "contract_type": "legal_title_report",
+        "overall_risk_level": "high",
+        "overall_risk_score": 66,
+        "top_risks": [{
+            "clause_type": "project_finance_charge", "risk_level": "high",
+            "risk_score": 72, "summary": "Project-finance charges are listed.",
+            "why_risky": "The report lists charges over project assets.",
+            "suggested_question": "Which charges remain?", "page": 40,
+            "evidence": "Annexure B lists a project-finance mortgage over the land.",
+        }],
+    }
+    findings = [SimpleNamespace(confidence_score=0.9)]
+
+    payload = service._build_payload(
+        document=document, analysis=analysis, clauses=[], findings=findings
+    )
+    report = service._render_markdown(payload)
+
+    assert "Title Matters Requiring Review" in report
+    assert "Questions for Title Review" in report
+    assert "Review Priority Score: 66" in report
+    assert "Evidence: Annexure B lists a project-finance mortgage" in report
+    assert "Evidence Coverage" in report
+    assert "Top Risky Clauses" not in report
+    assert "Questions to Ask Before Signing" not in report
+    assert "Important Amounts and Timelines" not in report
