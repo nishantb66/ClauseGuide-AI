@@ -60,11 +60,13 @@ function authHeaders(extra?: HeadersInit): HeadersInit {
 async function parseResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
     let detail = `Request failed: ${response.status}`;
-    try {
-      const payload = await response.json();
-      detail = extractErrorMessage(payload, response.status);
-    } catch {
-      detail = await response.text();
+    const body = await response.text();
+    if (body) {
+      try {
+        detail = extractErrorMessage(JSON.parse(body), response.status);
+      } catch {
+        detail = body;
+      }
     }
     throw new Error(detail || `Request failed: ${response.status}`);
   }
