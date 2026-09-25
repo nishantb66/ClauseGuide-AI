@@ -174,7 +174,7 @@ export async function getDashboardStats(): Promise<DashboardStats> {
   return parseResponse(response);
 }
 
-export async function uploadDocument(file: File): Promise<{ document_id: string; status: string }> {
+export async function uploadDocument(file: File, onProgress?: (percent: number) => void): Promise<{ document_id: string; status: string }> {
   const start = await fetch(`${API_BASE}/documents/uploads`, {
     method: "POST",
     headers: { ...authHeaders(), "Content-Type": "application/json" },
@@ -183,6 +183,7 @@ export async function uploadDocument(file: File): Promise<{ document_id: string;
   const { upload_id, chunk_size } = await parseResponse(start) as { upload_id: string; chunk_size: number };
   const chunkCount = Math.ceil(file.size / chunk_size);
   let nextIndex = 0;
+  let completedChunks = 0;
   const uploadNext = async () => {
     while (nextIndex < chunkCount) {
       const index = nextIndex++;
@@ -194,6 +195,8 @@ export async function uploadDocument(file: File): Promise<{ document_id: string;
         body: chunk,
       });
       if (!response.ok) await parseResponse(response);
+      completedChunks += 1;
+      onProgress?.(Math.min(99, Math.round((completedChunks / chunkCount) * 100)));
     }
   };
   await Promise.all(Array.from({ length: Math.min(3, chunkCount) }, uploadNext));
@@ -201,7 +204,9 @@ export async function uploadDocument(file: File): Promise<{ document_id: string;
     method: "POST",
     headers: authHeaders(),
   });
-  return parseResponse(completed);
+  const result = await parseResponse(completed) as { document_id: string; status: string };
+  onProgress?.(100);
+  return result;
 }
 
 export async function processDocument(documentId: string): Promise<ProcessResponse> {

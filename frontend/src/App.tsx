@@ -164,6 +164,8 @@ function App() {
   const [latestEvaluation, setLatestEvaluation] = useState<EvaluationRunResponse | null>(null);
   const [useRagasEval, setUseRagasEval] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [activity, setActivity] = useState<"uploading" | "analysing" | "">("");
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [activeView, setActiveView] = useState<WorkspaceView>("risks");
@@ -393,10 +395,12 @@ function App() {
     if (!file) return;
 
     setBusy(true);
+    setActivity("uploading");
+    setUploadProgress(0);
     setError("");
     setMessage("");
     try {
-      const upload = await uploadDocument(file);
+      const upload = await uploadDocument(file, setUploadProgress);
       setSelectedDocumentId(upload.document_id);
       resetDocumentState();
       await Promise.all([refreshDocuments(), refreshDashboard()]);
@@ -405,6 +409,7 @@ function App() {
     } catch (err) {
       handleError(err, "Upload failed");
     } finally {
+      setActivity("");
       setBusy(false);
     }
   }
@@ -416,6 +421,7 @@ function App() {
     }
 
     setBusy(true);
+    setActivity("analysing");
     setError("");
     setMessage("");
     try {
@@ -430,6 +436,7 @@ function App() {
     } catch (err) {
       handleError(err, "Processing failed");
     } finally {
+      setActivity("");
       setBusy(false);
     }
   }
@@ -730,6 +737,19 @@ function App() {
           />
         </label>
 
+        {activity ? (
+          <div className="activity-card" role="status" aria-live="polite">
+            <span className="activity-spinner" aria-hidden="true" />
+            <div className="activity-copy">
+              <strong>{activity === "uploading" ? "Uploading document" : "Analysing document"}</strong>
+              <small>{activity === "uploading" ? `${uploadProgress}% uploaded` : "Reading pages and preparing source-backed findings"}</small>
+              <div className="activity-progress" aria-hidden="true">
+                <span className={activity === "analysing" ? "indeterminate" : ""} style={activity === "uploading" ? { width: `${uploadProgress}%` } : undefined} />
+              </div>
+            </div>
+          </div>
+        ) : null}
+
         <div className="rail-actions">
           <button type="button" disabled={busy || !selectedDocumentId} onClick={() => void onProcessDocument()}>
             Analyse
@@ -786,6 +806,7 @@ function App() {
             activeView={activeView}
             analysis={analysis}
             busy={busy}
+            activity={activity}
             clauses={clauses}
             documents={documents}
             evaluationRuns={evaluationRuns}
@@ -1266,6 +1287,7 @@ function DocumentWorkspace(props: {
   activeView: WorkspaceView;
   analysis: AnalysisResponse | null;
   busy: boolean;
+  activity: "uploading" | "analysing" | "";
   clauses: ClauseItem[];
   documents: DocumentSummary[];
   evaluationRuns: EvaluationRunListItem[];
@@ -1293,6 +1315,7 @@ function DocumentWorkspace(props: {
     activeView,
     analysis,
     busy,
+    activity,
     clauses,
     evaluationRuns,
     latestEvaluation,
@@ -1353,6 +1376,14 @@ function DocumentWorkspace(props: {
           </button>
         )}
       </div>
+
+      {activity === "analysing" ? (
+        <div className="workspace-activity" role="status" aria-live="polite">
+          <span className="activity-spinner" aria-hidden="true" />
+          <div><strong>Review in progress</strong><p>Extracting document text and preparing findings with page references. This may take a moment.</p></div>
+          <span className="activity-progress"><span className="indeterminate" /></span>
+        </div>
+      ) : null}
 
       {analysis ? (
         <div className="decision-strip">
